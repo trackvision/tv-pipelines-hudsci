@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Name}} - HudSci Pipelines</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4a90d9;
+            padding-bottom: 0.5rem;
+        }
+        h2 {
+            color: #555;
+            margin-top: 2rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #4a90d9;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .steps-list {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .steps-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+            font-family: monospace;
+        }
+        .steps-list li:last-child {
+            border-bottom: none;
+        }
+        .run-form {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: #666;
+        }
+        button {
+            background: #4a90d9;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #357abd;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .result.loading {
+            background: #fff3cd;
+            color: #856404;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <a href="/ui/" class="back-link">&larr; Back to pipelines</a>
+    <h1>{{.Name}}</h1>
+
+    <h2>Steps</h2>
+    <ol class="steps-list">
+        {{range .Tasks}}
+        <li>{{.}}</li>
+        {{end}}
+    </ol>
+
+    <h2>Run Pipeline</h2>
+    <div class="run-form">
+        <form id="runForm">
+            <div class="form-group">
+                <label for="runId">Run ID (optional)</label>
+                <input type="text" id="runId" name="id" placeholder="Auto-generated if empty">
+            </div>
+            <div class="form-group">
+                <label for="skipSteps">Skip Steps</label>
+                <input type="text" id="skipSteps" name="skip_steps" placeholder="step1, step2, ...">
+                <small>Comma-separated list of step names to skip (for dry-run mode)</small>
+            </div>
+            <button type="submit" id="submitBtn">Run Pipeline</button>
+        </form>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('runForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const result = document.getElementById('result');
+            const runId = document.getElementById('runId').value.trim();
+            const skipStepsRaw = document.getElementById('skipSteps').value.trim();
+
+            // Parse skip steps
+            const skipSteps = skipStepsRaw
+                ? skipStepsRaw.split(',').map(s => s.trim()).filter(s => s)
+                : [];
+
+            // Build request body
+            const body = {};
+            if (runId) body.id = runId;
+            if (skipSteps.length > 0) body.skip_steps = skipSteps;
+
+            // Update UI
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Running...';
+            result.className = 'result loading';
+            result.textContent = 'Pipeline is running...';
+
+            try {
+                const response = await fetch('/run/{{.Name}}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    result.className = 'result success';
+                    result.textContent = `Pipeline completed successfully! ID: ${data.id}`;
+                } else {
+                    result.className = 'result error';
+                    result.textContent = `Pipeline failed: ${data.error}`;
+                }
+            } catch (err) {
+                result.className = 'result error';
+                result.textContent = `Request failed: ${err.message}`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Run Pipeline';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><epcis:EPCISDocument schemaVersion="1.2" creationDate="2025-12-18T21:42:46.792553+00:00" xmlns:epcis="urn:epcglobal:epcis:xsd:1" xmlns:xalan="http://xml.apache.org/xslt">
+    <EPCISBody>
+        <EventList>
+            <extension>
+                <TransformationEvent>
+                    <eventTime>2025-12-18T00:00:00Z</eventTime>
+                    <eventTimeZoneOffset>-04:00</eventTimeZoneOffset>
+                    <baseExtension>
+                        <eventID>ni:///sha-256;dc3463c69ec7d067e1bbac3ad531cd0e155477a6fc001bf91e64c7e3d6d6bc32?ver=CBV2.0</eventID>
+                    </baseExtension>
+                    <inputEPCList>
+                        <epc>urn:epc:id:sgtin:0365162.091174.3000264141</epc>
+                    </inputEPCList>
+                    <outputEPCList>
+                        <epc>urn:epc:id:sgtin:0372835.022202.7TSJFG5Z</epc>
+                        <epc>urn:epc:id:sgtin:0372835.022202.SJABEYQA</epc>
+                    </outputEPCList>
+                    <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+                    <disposition>urn:epcglobal:cbv:disp:active</disposition>
+                    <readPoint>
+                        <id>urn:epc:id:sgln:120018020383..0</id>
+                    </readPoint>
+                    <bizLocation>
+                        <id>urn:epc:id:sgln:120018020383..0</id>
+                    </bizLocation>
+                    <ilmd>
+                        <cbvmda:itemExpirationDate xmlns:cbvmda="urn:epcglobal:cbv:mda">2026-02-20</cbvmda:itemExpirationDate>
+                        <cbvmda:lotNumber xmlns:cbvmda="urn:epcglobal:cbv:mda">OR251218-1</cbvmda:lotNumber>
+                    </ilmd>
+                </TransformationEvent>
+            </extension>
+            <ObjectEvent>
+                <eventTime>2025-12-19T17:00:00Z</eventTime>
+                <eventTimeZoneOffset>-04:00</eventTimeZoneOffset>
+                <baseExtension>
+                    <eventID>ni:///sha-256;728bd2a9b216cae4a4e48f62eab53b21175eae75226b3dbff7acd5fd83578a7b?ver=CBV2.0</eventID>
+                </baseExtension>
+                <epcList>
+                    <epc>urn:epc:id:sgtin:0372835.022202.7TSJFG5Z</epc>
+                    <epc>urn:epc:id:sgtin:0372835.022202.SJABEYQA</epc>
+                </epcList>
+                <action>OBSERVE</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:shipping</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:in_transit</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:120018020383..0</id>
+                </readPoint>
+                <bizTransactionList>
+                    <bizTransaction type="urn:epcglobal:cbv:btt:po">urn:epcglobal:cbv:bt:1200180203836:HUD-ANDA-001</bizTransaction>
+                </bizTransactionList>
+                <extension>
+                    <sourceList>
+                        <source type="urn:epcglobal:cbv:sdt:location">urn:epc:id:sgln:120018020383..0</source>
+                        <source type="urn:epcglobal:cbv:sdt:owning_party">urn:epc:id:sgln:120018020383..0</source>
+                    </sourceList>
+                    <destinationList>
+                        <destination type="urn:epcglobal:cbv:sdt:location">urn:epc:id:sgln:08600140705.2.0</destination>
+                        <destination type="urn:epcglobal:cbv:sdt:owning_party">urn:epc:id:sgln:08600140705.0.0</destination>
+                    </destinationList>
+                </extension>
+            </ObjectEvent>
+        </EventList>
+    </EPCISBody>
+</epcis:EPCISDocument>

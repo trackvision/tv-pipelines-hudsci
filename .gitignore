@@ -1,0 +1,23 @@
+# Binaries
+bin/
+/pipeline
+*.exe
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Test artifacts
+coverage.out
+
+# Certificates (CRITICAL: Never commit!)
+certs/

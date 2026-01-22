@@ -1,0 +1,18 @@
+# Output of the go test coverage tool
+*.out
+
+# The goflow-example binary
+goflow-example
+
+# Front-end dependencies
+ui/node_modules
+
+# Front-end compiled assets
+ui/dist
+
+# The default goflow database
+goflow.db
+
+# The test database
+test.db
+.vscode

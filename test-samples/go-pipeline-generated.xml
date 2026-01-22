@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TransformationEvent xmlns:cbvmda="urn:epcglobal:cbv:mda" xmlns:sbdh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:gs1ushc="http://epcis.gs1us.org/hc/ns">
+  <EPCISHeader>
+    <sbdh:StandardBusinessDocumentHeader>
+      <sbdh:HeaderVersion>1.0</sbdh:HeaderVersion>
+      <sbdh:Sender>
+        <sbdh:Identifier Authority="SGLN">urn:epc:id:sgln:120018020383..0</sbdh:Identifier>
+      </sbdh:Sender>
+      <sbdh:Receiver>
+        <sbdh:Identifier Authority="SGLN">urn:epc:id:sgln:08600140705.0.0</sbdh:Identifier>
+      </sbdh:Receiver>
+      <sbdh:DocumentIdentification>
+        <sbdh:Standard>EPCglobal</sbdh:Standard>
+        <sbdh:TypeVersion>1.0</sbdh:TypeVersion>
+        <sbdh:InstanceIdentifier>60debf0b-c77f-43ec-ac5f-a95d52c33cf4</sbdh:InstanceIdentifier>
+        <sbdh:Type>Events</sbdh:Type>
+        <sbdh:CreationDateAndTime>2026-01-22T13:33:47Z</sbdh:CreationDateAndTime>
+      </sbdh:DocumentIdentification>
+    </sbdh:StandardBusinessDocumentHeader>
+    <extension>
+      <EPCISMasterData>
+        <VocabularyList>
+          <Vocabulary type="urn:epcglobal:epcis:vtype:EPCClass">
+            <VocabularyElementList>
+              <VocabularyElement id="urn:epc:idpat:sgtin:0368462.050165.*">
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">68462-501-65</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">US_FDA_NDC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">Calcipotriene Cream .0005% (60g)</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">Anda Pharmaceuticals</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#netContentDescription">50ug/g</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#dosageFormType">CREAM</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#strengthDescription">Calcipotriene Cream .0005% 60g tube</attribute>
+              </VocabularyElement>
+              <VocabularyElement id="urn:epc:idpat:sgtin:0372835.022202.*">
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">72835-222-02</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">US_FDA_NDC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">Orthaphen</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">Hudson Scientific LLC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#netContentDescription">16.05mg/ml</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#dosageFormType">LIQUID</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#strengthDescription">Diclofenac sodium topical solution: 1.5% w/w</attribute>
+              </VocabularyElement>
+            </VocabularyElementList>
+          </Vocabulary>
+          <Vocabulary type="urn:epcglobal:epcis:vtype:Location">
+            <VocabularyElementList>
+              <VocabularyElement id="urn:epc:id:sgln:120018020383..0">
+                <attribute id="urn:epcglobal:cbv:mda#name">Hudson Scientific LLC - Retail</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">103 W Main St</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#city">Hudson</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#state">MI</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#postalCode">49247</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+              </VocabularyElement>
+              <VocabularyElement id="urn:epc:id:sgln:08600140705.8.0">
+                <attribute id="urn:epcglobal:cbv:mda#name">Axia Medical Solutions - Carlsbad</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">2105 Camino Vida Roble</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#city">Carlsbad</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#state">CA</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#postalCode">92011</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+              </VocabularyElement>
+              <VocabularyElement id="urn:epc:id:sgln:08600140705.0.0">
+                <attribute id="urn:epcglobal:cbv:mda#name">Axia Medical Solutions LLC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">2105 Camino Vida Roble, STE L</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#city">Carlsbad</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#state">CA</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#postalCode">92011</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+              </VocabularyElement>
+            </VocabularyElementList>
+          </Vocabulary>
+        </VocabularyList>
+      </EPCISMasterData>
+    </extension>
+    <gs1ushc:guidelineVersion>GS1 US DSCSA R1.3</gs1ushc:guidelineVersion>
+    <gs1ushc:dscsaTransactionStatement>
+      <gs1ushc:affirmTransactionStatement>true</gs1ushc:affirmTransactionStatement>
+      <gs1ushc:legalNotice>Seller has complied with each applicable subsection of FDCA Sec. 581(27)(A)-(G).</gs1ushc:legalNotice>
+    </gs1ushc:dscsaTransactionStatement>
+  </EPCISHeader>
+  <eventTime>2025-12-17T00:00:00Z</eventTime>
+  <eventTimeZoneOffset>-04:00</eventTimeZoneOffset>
+  <eventID>ni:///sha-256;b83c200464b5d15ace1db7a63d23d539f259b2553eb2fa49a5cb49babcf25345?ver=CBV2.0</eventID>
+  <inputEPCList>
+    <epc>urn:epc:id:sgtin:0368462.050165.MF7XFX3T91ME</epc>
+    <epc>urn:epc:id:sgtin:0368462.050165.VA58D34MDFYM</epc>
+  </inputEPCList>
+  <outputEPCList>
+    <epc>urn:epc:id:sgtin:0372835.022202.LQ7GFN85</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.0TWP6TPO</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.O23ULTJK</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.2D066G3J</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.TBPBT2R3</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.B506WOQQ</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.RWR0PQW9</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.JATZF1QI</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.AH45J0QB</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.MPK2MFOS</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.3DXQM5ZA</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.8BF3ZIPQ</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.CUWZHLKR</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.BU2AB3MZ</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.UBG1NOR4</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.MMO24W5X</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.9NZJ666E</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.9O0ZR01J</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.J6WHYOY9</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.SZP1I6G1</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.23IQA5JR</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.3FOF6O3K</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.SYY279HL</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.H2HVJVLL</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.VCVINJ6B</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.9WRG25WU</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.8UJXZ80S</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.ZACQK4R1</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.C01MWE5I</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.MBV5ND22</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.CQA83CQ6</epc>
+    <epc>urn:epc:id:sgtin:0372835.022202.7DBZ7ESE</epc>
+  </outputEPCList>
+  <readPoint>
+    <id>urn:epc:id:sgln:120018020383..0</id>
+  </readPoint>
+  <ilmd>
+    <cbvmda:itemExpirationDate>2027-08-31</cbvmda:itemExpirationDate>
+    <cbvmda:lotNumber>OR251217-1</cbvmda:lotNumber>
+  </ilmd>
+</TransformationEvent>

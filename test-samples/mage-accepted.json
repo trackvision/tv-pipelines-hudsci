@@ -1,0 +1,77 @@
+{
+  "@context": "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld",
+  "type": "EPCISDocument",
+  "schemaVersion": "2.0",
+  "creationDate": "2025-12-18T21:42:46.792553+00:00",
+  "epcisBody": {
+    "eventList": [
+      {
+        "bizLocation": {
+          "id": "urn:epc:id:sgln:120018020383..0"
+        },
+        "bizStep": "commissioning",
+        "disposition": "active",
+        "eventID": "ni:///sha-256;dc3463c69ec7d067e1bbac3ad531cd0e155477a6fc001bf91e64c7e3d6d6bc32?ver=CBV2.0",
+        "eventTime": "2025-12-18T00:00:00.000Z",
+        "eventTimeZoneOffset": "-04:00",
+        "ilmd": {
+          "cbvmda:itemExpirationDate": "2026-02-20",
+          "cbvmda:lotNumber": "OR251218-1"
+        },
+        "inputEPCList": [
+          "urn:epc:id:sgtin:0365162.091174.3000264141"
+        ],
+        "outputEPCList": [
+          "urn:epc:id:sgtin:0372835.022202.7TSJFG5Z",
+          "urn:epc:id:sgtin:0372835.022202.SJABEYQA"
+        ],
+        "readPoint": {
+          "id": "urn:epc:id:sgln:120018020383..0"
+        },
+        "type": "TransformationEvent"
+      },
+      {
+        "action": "OBSERVE",
+        "bizStep": "shipping",
+        "bizTransactionList": [
+          {
+            "bizTransaction": "urn:epcglobal:cbv:bt:1200180203836:HUD-ANDA-001",
+            "type": "urn:epcglobal:cbv:btt:po"
+          }
+        ],
+        "destinationList": [
+          {
+            "destination": "urn:epc:id:sgln:08600140705.2.0",
+            "type": "location"
+          },
+          {
+            "destination": "urn:epc:id:sgln:08600140705.0.0",
+            "type": "owning_party"
+          }
+        ],
+        "disposition": "in_transit",
+        "epcList": [
+          "urn:epc:id:sgtin:0372835.022202.7TSJFG5Z",
+          "urn:epc:id:sgtin:0372835.022202.SJABEYQA"
+        ],
+        "eventID": "ni:///sha-256;728bd2a9b216cae4a4e48f62eab53b21175eae75226b3dbff7acd5fd83578a7b?ver=CBV2.0",
+        "eventTime": "2025-12-19T17:00:00.000Z",
+        "eventTimeZoneOffset": "-04:00",
+        "readPoint": {
+          "id": "urn:epc:id:sgln:120018020383..0"
+        },
+        "sourceList": [
+          {
+            "source": "urn:epc:id:sgln:120018020383..0",
+            "type": "location"
+          },
+          {
+            "source": "urn:epc:id:sgln:120018020383..0",
+            "type": "owning_party"
+          }
+        ],
+        "type": "ObjectEvent"
+      }
+    ]
+  }
+}

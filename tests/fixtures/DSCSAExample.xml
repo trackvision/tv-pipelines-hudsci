@@ -1,0 +1,325 @@
+<epcis:EPCISDocument xmlns:cbvmda="urn:epcglobal:cbv:mda"
+    xmlns:sbdh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader"
+    xmlns:gs1ushc="http://epcis.gs1us.org/hc/ns" xmlns:epcis="urn:epcglobal:epcis:xsd:1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="1.2"
+    xsi:schemaLocation="urn:epcglobal:epcis:xsd:1 EPCglobal-epcis-1_2.xsd"
+    creationDate="2023-04-01T08:45:16Z">
+    <EPCISHeader>
+        <sbdh:StandardBusinessDocumentHeader>
+            <sbdh:HeaderVersion>1.0</sbdh:HeaderVersion>
+            <sbdh:Sender>
+                <sbdh:Identifier Authority="GS1">urn:epc:id:sgln:030001.111111.0</sbdh:Identifier>
+            </sbdh:Sender>
+            <sbdh:Receiver>
+                <sbdh:Identifier Authority="GS1">urn:epc:id:sgln:039999.999999.0</sbdh:Identifier>
+            </sbdh:Receiver>
+            <sbdh:DocumentIdentification>
+                <sbdh:Standard>EPCglobal</sbdh:Standard>
+                <sbdh:TypeVersion>1.0</sbdh:TypeVersion>
+                <sbdh:InstanceIdentifier>1100220001</sbdh:InstanceIdentifier>
+                <sbdh:Type>Events</sbdh:Type>
+                <sbdh:CreationDateAndTime>2023-04-01T08:45:16Z</sbdh:CreationDateAndTime>
+            </sbdh:DocumentIdentification>
+        </sbdh:StandardBusinessDocumentHeader>
+        <extension>
+            <EPCISMasterData>
+                <VocabularyList>
+                    <Vocabulary type="urn:epcglobal:epcis:vtype:EPCClass">
+                        <VocabularyElementList>
+                            <!--  master data for lowest saleable unit  -->
+                            <VocabularyElement id="urn:epc:idpat:sgtin:030001.0012345.*">
+                                <attribute
+                                    id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">
+                                    0001-0123-45</attribute>
+                                <attribute
+                                    id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">
+                                    US_FDA_NDC</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">Epcistra</attribute>
+                                <attribute
+                                    id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">GS1
+                                    Pharma LLC</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#dosageFormType">PILL</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#strengthDescription">100mg</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#netContentDescription">500
+                                    pills</attribute>
+                            </VocabularyElement>
+                            <!--  master data for case  -->
+                            <VocabularyElement id="urn:epc:idpat:sgtin:030001.1012345.*">
+                                <attribute
+                                    id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">
+                                    0001-0123-45</attribute>
+                                <attribute
+                                    id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">
+                                    US_FDA_NDC</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">Epcistra</attribute>
+                                <attribute
+                                    id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">GS1
+                                    Pharma LLC</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#dosageFormType">PILL</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#strengthDescription">100mg</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#netContentDescription">500
+                                    pills</attribute>
+                            </VocabularyElement>
+                        </VocabularyElementList>
+                    </Vocabulary>
+                    <Vocabulary type="urn:epcglobal:epcis:vtype:Location">
+                        <VocabularyElementList>
+                            <!--  MFG  -->
+                            <VocabularyElement id="urn:epc:id:sgln:030001.111111.0">
+                                <attribute id="urn:epcglobal:cbv:mda#name">GS1 Pharma</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">1 Biopharm Ct</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressTwo">Suite A</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#city">Thousand Oaks</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#state">CA</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#postalCode">91320</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+                            </VocabularyElement>
+                            <!--  MFG DC -->
+                            <VocabularyElement id="urn:epc:id:sgln:030001.111121.0">
+                                <attribute id="urn:epcglobal:cbv:mda#name">GS1 Pharma DC</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">2806 Agoura
+                                    Rd</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressTwo">Suite 500</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#city">Westlake Village</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#state">CA</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#postalCode">91361</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+                            </VocabularyElement>
+                            <!--  Wholesaler1  -->
+                            <VocabularyElement id="urn:epc:id:sgln:039999.999999.0">
+                                <attribute id="urn:epcglobal:cbv:mda#name">GS1 Drug Distributor</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">230 Park Ave
+                                    S</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressTwo">Room 378</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#city">New York</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#state">NY</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#postalCode">10003-1502</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+                            </VocabularyElement>
+                            <!--  Wholesaler1's DC -->
+                            <VocabularyElement id="urn:epc:id:sgln:039999.345678.0">
+                                <attribute id="urn:epcglobal:cbv:mda#name">GS1 Drug Distributor
+                                    Warehouse</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">136 Main St</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#streetAddressTwo">Suite 100</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#city">Louisville</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#state">KY</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#postalCode">40218</attribute>
+                                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+                            </VocabularyElement>
+                        </VocabularyElementList>
+                    </Vocabulary>
+                </VocabularyList>
+            </EPCISMasterData>
+        </extension>
+        <gs1ushc:guidelineVersion>GS1 US DSCSA R1.3</gs1ushc:guidelineVersion>
+        <gs1ushc:dscsaTransactionStatement>
+            <gs1ushc:affirmTransactionStatement>true</gs1ushc:affirmTransactionStatement>
+            <gs1ushc:legalNotice>Seller has complied with each applicable subsection of FDCA Sec.
+                581(27)(A)-(G).</gs1ushc:legalNotice>
+        </gs1ushc:dscsaTransactionStatement>
+    </EPCISHeader>
+    <EPCISBody>
+        <EventList>
+            <!--  E1: Commissioning events (12 LSUs: 4 LSUs per case)  -->
+            <ObjectEvent>
+                <eventTime>2023-03-27T06:45:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <epcList>
+                    <epc>urn:epc:id:sgtin:030001.0012345.11</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.12</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.13</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.14</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.15</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.16</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.17</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.18</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.19</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.20</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.21</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.22</epc>
+                </epcList>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:active</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </bizLocation>
+                <extension>
+                    <ilmd>
+                        <cbvmda:lotNumber>A123</cbvmda:lotNumber>
+                        <cbvmda:itemExpirationDate>2025-03-27</cbvmda:itemExpirationDate>
+                    </ilmd>
+                </extension>
+            </ObjectEvent>
+            <!--  E2: Commissioning events (3 case SNs 110, 111, 121)  -->
+            <ObjectEvent>
+                <eventTime>2023-03-27T06:46:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <epcList>
+                    <epc>urn:epc:id:sgtin:030001.1012345.110</epc>
+                    <epc>urn:epc:id:sgtin:030001.1012345.111</epc>
+                    <epc>urn:epc:id:sgtin:030001.1012345.121</epc>
+                </epcList>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:active</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </bizLocation>
+                <extension>
+                    <ilmd>
+                        <cbvmda:lotNumber>A123</cbvmda:lotNumber>
+                        <cbvmda:itemExpirationDate>2025-03-27</cbvmda:itemExpirationDate>
+                    </ilmd>
+                </extension>
+            </ObjectEvent>
+            <!--  E3: Aggregation event (packing case SN 110 with 4 LSUs)  -->
+            <AggregationEvent>
+                <eventTime>2023-03-27T06:50:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <parentID>urn:epc:id:sgtin:030001.1012345.110</parentID>
+                <childEPCs>
+                    <epc>urn:epc:id:sgtin:030001.0012345.11</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.12</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.13</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.14</epc>
+                </childEPCs>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:packing</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:in_progress</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </bizLocation>
+            </AggregationEvent>
+            <!--  E4: Aggregation event (packing case SN 111 with 4 LSUs)  -->
+            <AggregationEvent>
+                <eventTime>2023-03-27T06:51:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <parentID>urn:epc:id:sgtin:030001.1012345.111</parentID>
+                <childEPCs>
+                    <epc>urn:epc:id:sgtin:030001.0012345.15</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.16</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.17</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.18</epc>
+                </childEPCs>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:packing</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:in_progress</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </bizLocation>
+            </AggregationEvent>
+            <!--  E5: Aggregation event (packing case SN 121 with 4 LSUs)  -->
+            <AggregationEvent>
+                <eventTime>2023-03-27T06:52:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <parentID>urn:epc:id:sgtin:030001.1012345.121</parentID>
+                <childEPCs>
+                    <epc>urn:epc:id:sgtin:030001.0012345.19</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.20</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.21</epc>
+                    <epc>urn:epc:id:sgtin:030001.0012345.22</epc>
+                </childEPCs>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:packing</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:in_progress</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111111.0</id>
+                </bizLocation>
+            </AggregationEvent>
+            <!--  E6: Commissioning event (1 pallet of GTIN A) at the MFG DC  -->
+            <ObjectEvent>
+                <eventTime>2023-04-01T06:47:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <epcList>
+                    <epc>urn:epc:id:sscc:030001.41234567890</epc>
+                </epcList>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:active</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111121.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111121.0</id>
+                </bizLocation>
+            </ObjectEvent>
+            <!--  E7: Aggregation event (packing pallet with 3 cases SNs 110, 111, 121)  -->
+            <AggregationEvent>
+                <eventTime>2023-04-01T06:48:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <parentID>urn:epc:id:sscc:030001.41234567890</parentID>
+                <childEPCs>
+                    <epc>urn:epc:id:sgtin:030001.1012345.110</epc>
+                    <epc>urn:epc:id:sgtin:030001.1012345.111</epc>
+                    <epc>urn:epc:id:sgtin:030001.1012345.121</epc>
+                </childEPCs>
+                <action>ADD</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:packing</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:in_progress</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111121.0</id>
+                </readPoint>
+                <bizLocation>
+                    <id>urn:epc:id:sgln:030001.111121.0</id>
+                </bizLocation>
+            </AggregationEvent>
+            <!--  E8: Shipping pallet of 3 cases ordered  -->
+            <ObjectEvent>
+                <eventTime>2023-04-01T07:48:16Z</eventTime>
+                <eventTimeZoneOffset>-05:00</eventTimeZoneOffset>
+                <epcList>
+                    <epc>urn:epc:id:sscc:030001.41234567890</epc>
+                </epcList>
+                <action>OBSERVE</action>
+                <bizStep>urn:epcglobal:cbv:bizstep:shipping</bizStep>
+                <disposition>urn:epcglobal:cbv:disp:in_transit</disposition>
+                <readPoint>
+                    <id>urn:epc:id:sgln:030001.111121.0</id>
+                </readPoint>
+                <!--  2 business documents: PO from buying Wholesaler1, Delivery Document created by
+                MFG DC  -->
+                <bizTransactionList>
+                    <bizTransaction type="urn:epcglobal:cbv:btt:po">
+                        urn:epcglobal:cbv:bt:0399999999991:XYZPO189</bizTransaction>
+                    <bizTransaction type="urn:epcglobal:cbv:btt:desadv">
+                        urn:epcglobal:cbv:bt:0300011111215:DEL100</bizTransaction>
+                </bizTransactionList>
+                <extension>
+                    <!--  Source Owning Party is MFG, Source Location is MFG DC  -->
+                    <sourceList>
+                        <source type="urn:epcglobal:cbv:sdt:owning_party">
+                            urn:epc:id:sgln:030001.111111.0</source>
+                        <source type="urn:epcglobal:cbv:sdt:location">
+                            urn:epc:id:sgln:030001.111121.0</source>
+                    </sourceList>
+                    <!--  Destination Owning Party is Wholesaler, Destination Location is Wholesaler
+                    DC  -->
+                    <destinationList>
+                        <destination type="urn:epcglobal:cbv:sdt:owning_party">
+                            urn:epc:id:sgln:039999.999999.0</destination>
+                        <destination type="urn:epcglobal:cbv:sdt:location">
+                            urn:epc:id:sgln:039999.345678.0</destination>
+                    </destinationList>
+                </extension>
+                <gs1ushc:dropShipment>false</gs1ushc:dropShipment>
+            </ObjectEvent>
+        </EventList>
+    </EPCISBody>
+</epcis:EPCISDocument>

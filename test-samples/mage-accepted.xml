@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='utf-8'?>
+<epcis:EPCISDocument xmlns:epcis="urn:epcglobal:epcis:xsd:1" xmlns:xalan="http://xml.apache.org/xslt" xmlns:sbdh="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader" xmlns:gs1ushc="http://epcis.gs1us.org/hc/ns" xmlns:cbvmda="urn:epcglobal:cbv:mda" schemaVersion="1.2" creationDate="2025-12-18T21:42:46.792553+00:00">
+  <EPCISHeader>
+    <sbdh:StandardBusinessDocumentHeader>
+      <sbdh:HeaderVersion>1.0</sbdh:HeaderVersion>
+      <sbdh:Sender>
+        <sbdh:Identifier Authority="SGLN">urn:epc:id:sgln:120018020383..0</sbdh:Identifier>
+      </sbdh:Sender>
+      <sbdh:Receiver>
+        <sbdh:Identifier Authority="SGLN">urn:epc:id:sgln:08600140705.2.0</sbdh:Identifier>
+      </sbdh:Receiver>
+      <sbdh:DocumentIdentification>
+        <sbdh:Standard>EPCglobal</sbdh:Standard>
+        <sbdh:TypeVersion>1.0</sbdh:TypeVersion>
+        <sbdh:InstanceIdentifier>05644157-916f-4893-a4f1-93a0a0d7273b</sbdh:InstanceIdentifier>
+        <sbdh:Type>Events</sbdh:Type>
+        <sbdh:CreationDateAndTime>2025-12-18T21:42:56.862622+00:00</sbdh:CreationDateAndTime>
+      </sbdh:DocumentIdentification>
+    </sbdh:StandardBusinessDocumentHeader>
+    <extension>
+      <EPCISMasterData>
+        <VocabularyList>
+          <Vocabulary type="urn:epcglobal:epcis:vtype:EPCClass">
+            <VocabularyElementList>
+              <VocabularyElement id="urn:epc:idpat:sgtin:0372835.022202.*">
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">72835-222-02</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">US_FDA_NDC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">Orthaphen</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">Hudson Scientific LLC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#dosageFormType">LIQUID</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#strengthDescription">Diclofenac sodium topical solution: 1.5% w/w</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#netContentDescription">16.05mg/ml</attribute>
+              </VocabularyElement>
+              <VocabularyElement id="urn:epc:idpat:sgtin:0365162.091174.*">
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentification">65162-911-74</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#additionalTradeItemIdentificationTypeCode">US_FDA_NDC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#regulatedProductName">Diclofenac Sodium Topical SL 1.5% (150ml)</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName">ParMed Pharmaceuticals</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#dosageFormType">LIQUID</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#strengthDescription">Diclofenac sodium topical solution: 1.5% w/w</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#netContentDescription">16.05mg/ml</attribute>
+              </VocabularyElement>
+            </VocabularyElementList>
+          </Vocabulary>
+          <Vocabulary type="urn:epcglobal:epcis:vtype:Location">
+            <VocabularyElementList>
+              <VocabularyElement id="urn:epc:id:sgln:120018020383..0">
+                <attribute id="urn:epcglobal:cbv:mda#name">Hudson Scientific LLC - Retail</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">103 W Main St</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#city">Hudson</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#state">MI</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#postalCode">49247</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+              </VocabularyElement>
+              <VocabularyElement id="urn:epc:id:sgln:08600140705.2.0">
+                <attribute id="urn:epcglobal:cbv:mda#name">Axia Medical Solutions - Dallas</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">10691 King William Dr</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#city">Dallas</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#state">TX</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#postalCode">75220</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+              </VocabularyElement>
+              <VocabularyElement id="urn:epc:id:sgln:08600140705.0.0">
+                <attribute id="urn:epcglobal:cbv:mda#name">Axia Medical Solutions LLC</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#streetAddressOne">2105 Camino Vida Roble, STE L</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#city">Carlsbad</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#state">CA</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#postalCode">92011</attribute>
+                <attribute id="urn:epcglobal:cbv:mda#countryCode">US</attribute>
+              </VocabularyElement>
+            </VocabularyElementList>
+          </Vocabulary>
+        </VocabularyList>
+      </EPCISMasterData>
+    </extension>
+    <gs1ushc:guidelineVersion>GS1 US DSCSA R1.3</gs1ushc:guidelineVersion>
+    <gs1ushc:dscsaTransactionStatement>
+      <gs1ushc:affirmTransactionStatement>true</gs1ushc:affirmTransactionStatement>
+      <gs1ushc:legalNotice>Seller has complied with each applicable subsection of FDCA Sec. 581(27)(A)-(G).</gs1ushc:legalNotice>
+    </gs1ushc:dscsaTransactionStatement>
+  </EPCISHeader>
+  <EPCISBody>
+    <EventList>
+      <extension>
+        <TransformationEvent>
+          <eventTime>2025-12-18T00:00:00Z</eventTime>
+          <eventTimeZoneOffset>-04:00</eventTimeZoneOffset>
+          <baseExtension>
+            <eventID>ni:///sha-256;dc3463c69ec7d067e1bbac3ad531cd0e155477a6fc001bf91e64c7e3d6d6bc32?ver=CBV2.0</eventID>
+          </baseExtension>
+          <inputEPCList>
+            <epc>urn:epc:id:sgtin:0365162.091174.3000264141</epc>
+          </inputEPCList>
+          <outputEPCList>
+            <epc>urn:epc:id:sgtin:0372835.022202.7TSJFG5Z</epc>
+            <epc>urn:epc:id:sgtin:0372835.022202.SJABEYQA</epc>
+          </outputEPCList>
+          <bizStep>urn:epcglobal:cbv:bizstep:commissioning</bizStep>
+          <disposition>urn:epcglobal:cbv:disp:active</disposition>
+          <readPoint>
+            <id>urn:epc:id:sgln:120018020383..0</id>
+          </readPoint>
+          <bizLocation>
+            <id>urn:epc:id:sgln:120018020383..0</id>
+          </bizLocation>
+          <ilmd>
+            <cbvmda:itemExpirationDate>2026-02-20</cbvmda:itemExpirationDate>
+            <cbvmda:lotNumber>OR251218-1</cbvmda:lotNumber>
+          </ilmd>
+        </TransformationEvent>
+      </extension>
+      <ObjectEvent>
+        <eventTime>2025-12-19T17:00:00Z</eventTime>
+        <eventTimeZoneOffset>-04:00</eventTimeZoneOffset>
+        <baseExtension>
+          <eventID>ni:///sha-256;728bd2a9b216cae4a4e48f62eab53b21175eae75226b3dbff7acd5fd83578a7b?ver=CBV2.0</eventID>
+        </baseExtension>
+        <epcList>
+          <epc>urn:epc:id:sgtin:0372835.022202.7TSJFG5Z</epc>
+          <epc>urn:epc:id:sgtin:0372835.022202.SJABEYQA</epc>
+        </epcList>
+        <action>OBSERVE</action>
+        <bizStep>urn:epcglobal:cbv:bizstep:shipping</bizStep>
+        <disposition>urn:epcglobal:cbv:disp:in_transit</disposition>
+        <readPoint>
+          <id>urn:epc:id:sgln:120018020383..0</id>
+        </readPoint>
+        <bizTransactionList>
+          <bizTransaction type="urn:epcglobal:cbv:btt:po">urn:epcglobal:cbv:bt:1200180203836:HUD-ANDA-001</bizTransaction>
+        </bizTransactionList>
+        <extension>
+          <sourceList>
+            <source type="urn:epcglobal:cbv:sdt:location">urn:epc:id:sgln:120018020383..0</source>
+            <source type="urn:epcglobal:cbv:sdt:owning_party">urn:epc:id:sgln:120018020383..0</source>
+          </sourceList>
+          <destinationList>
+            <destination type="urn:epcglobal:cbv:sdt:location">urn:epc:id:sgln:08600140705.2.0</destination>
+            <destination type="urn:epcglobal:cbv:sdt:owning_party">urn:epc:id:sgln:08600140705.0.0</destination>
+          </destinationList>
+        </extension>
+      </ObjectEvent>
+    </EventList>
+  </EPCISBody>
+</epcis:EPCISDocument>
