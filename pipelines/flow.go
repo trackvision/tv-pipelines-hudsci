@@ -66,10 +66,7 @@ func (f *Flow) Run(ctx context.Context) error {
 	startTime := time.Now()
 
 	// Build task name list for logging
-	taskNames := make([]string, 0, len(f.taskOrder))
-	for _, name := range f.taskOrder {
-		taskNames = append(taskNames, name)
-	}
+	taskNames := append([]string{}, f.taskOrder...)
 
 	// Get skip steps from context
 	skipSteps := getSkipStepsFromContext(ctx)
