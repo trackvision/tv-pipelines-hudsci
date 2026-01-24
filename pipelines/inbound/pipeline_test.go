@@ -13,11 +13,30 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	// Create mock Directus server
+	// Create mock server for both TrustMed Dashboard and Directus
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		// TrustMed Dashboard endpoints
+		case "/token":
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(tasks.TokenResponse{
+				AccessToken: "test-token",
+				TokenType:   "Bearer",
+				ExpiresIn:   600,
+			})
+
+		case "/de-status/company/37018/log/":
+			// Return empty file list (no files to process)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(tasks.FileSearchResponse{
+				Count:   0,
+				Next:    nil,
+				Results: []tasks.FileRecord{},
+			})
+
+		// Directus endpoints
 		case "/items/global_config":
-			// Return empty watermark
+			// Return watermark
 			watermarkValue := tasks.Watermark{
 				LastCheckTimestamp: tasks.WatermarkTime{Time: time.Now().Add(-1 * time.Hour)},
 				TotalProcessed:     0,
@@ -25,18 +44,11 @@ func TestRun(t *testing.T) {
 			watermarkJSON, _ := json.Marshal(watermarkValue)
 			config := tasks.GlobalConfigValue{
 				ID:    "1",
-				Key:   "inbound_shipment_received_watermark",
+				Key:   "trustmed_inbound_watermark",
 				Value: watermarkJSON,
 			}
 			resp := tasks.DirectusResponse{
 				Data: mustMarshal([]tasks.GlobalConfigValue{config}),
-			}
-			json.NewEncoder(w).Encode(resp)
-
-		case "/files":
-			// Return empty file list (no files to process)
-			resp := tasks.DirectusResponse{
-				Data: mustMarshal([]tasks.DirectusFile{}),
 			}
 			json.NewEncoder(w).Encode(resp)
 
@@ -49,7 +61,13 @@ func TestRun(t *testing.T) {
 	ctx := context.Background()
 	cms := tasks.NewDirectusClient(server.URL, "test-key")
 	cfg := &configs.Config{
-		FailureThreshold: 0.5,
+		TrustMedDashboardURL: server.URL,
+		TrustMedUsername:     "test-user",
+		TrustMedPassword:     "test-pass",
+		TrustMedClientID:     "37018",
+		TrustMedCompanyID:    "37018",
+		CMSBaseURL:           server.URL,
+		FailureThreshold:     0.5,
 	}
 
 	// Run pipeline with empty file list
