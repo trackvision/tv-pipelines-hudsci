@@ -66,6 +66,12 @@ type runResponse struct {
 	Error    string `json:"error,omitempty"`
 }
 
+type logsResponse struct {
+	Runs  []tasks.PipelineRun `json:"runs"`
+	Count int                 `json:"count"`
+	Query map[string]any      `json:"query"`
+}
+
 // authMiddleware checks for valid API key in Authorization header or X-API-Key header
 func authMiddleware(apiKey string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -125,10 +131,14 @@ func main() {
 	mux.HandleFunc("/jobs/", authMiddleware(cfg.APIKey, jobInfoHandler))
 	mux.HandleFunc("/run/", authMiddleware(cfg.APIKey, makeRunHandler(cfg)))
 
+	// Logs endpoint (auth required)
+	mux.HandleFunc("/logs", authMiddleware(cfg.APIKey, makeLogsHandler(cfg)))
+
 	// UI endpoints (no auth - for browser access)
 	mux.HandleFunc("/", redirectToUI)
 	mux.HandleFunc("/ui/", makeUIIndexHandler(tmpl))
 	mux.HandleFunc("/ui/jobs/", makeUIJobHandler(tmpl))
+	mux.HandleFunc("/ui/logs", makeUILogsHandler(tmpl, cfg))
 
 	server := &http.Server{
 		Addr:         ":" + port,
@@ -359,4 +369,106 @@ func getPipelineNames() []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// makeLogsHandler returns logs from GCP Cloud Logging
+func makeLogsHandler(cfg *configs.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Check if logging is configured
+		if cfg.GCPProjectID == "" || cfg.CloudRunService == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": "logs not configured: set GCP_PROJECT_ID and CLOUD_RUN_SERVICE",
+			})
+			return
+		}
+
+		// Parse query parameters
+		query := r.URL.Query()
+		pipeline := query.Get("pipeline")
+		severity := query.Get("severity")
+		sinceStr := query.Get("since")
+		limitStr := query.Get("limit")
+
+		// Parse since duration
+		since := time.Hour
+		if sinceStr != "" {
+			if d, err := time.ParseDuration(sinceStr); err == nil {
+				since = d
+			}
+		}
+
+		// Parse limit
+		limit := 100
+		if limitStr != "" {
+			if _, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil && limit > 0 && limit <= 500 {
+				// valid
+			} else {
+				limit = 100
+			}
+		}
+
+		// Create log client
+		ctx := r.Context()
+		logClient, err := tasks.NewLogClient(ctx, cfg.GCPProjectID, cfg.CloudRunService)
+		if err != nil {
+			logger.Error("failed to create log client", zap.Error(err))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		defer func() { _ = logClient.Close() }()
+
+		// Query logs
+		logs, err := logClient.QueryLogs(ctx, tasks.LogQuery{
+			ProjectID:   cfg.GCPProjectID,
+			ServiceName: cfg.CloudRunService,
+			Pipeline:    pipeline,
+			Severity:    severity,
+			Since:       since,
+			Limit:       limit,
+		})
+		if err != nil {
+			logger.Error("failed to query logs", zap.Error(err))
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		// Group logs by pipeline run
+		runs := tasks.GroupByRun(logs, cfg.GCPProjectID, cfg.CloudRunService)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(logsResponse{
+			Runs:  runs,
+			Count: len(runs),
+			Query: map[string]any{
+				"pipeline": pipeline,
+				"severity": severity,
+				"since":    sinceStr,
+				"limit":    limit,
+			},
+		})
+	}
+}
+
+// makeUILogsHandler returns the logs viewer UI page
+func makeUILogsHandler(tmpl *template.Template, cfg *configs.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_ = tmpl.ExecuteTemplate(w, "logs.html", map[string]any{
+			"Configured":  cfg.GCPProjectID != "" && cfg.CloudRunService != "",
+			"ProjectID":   cfg.GCPProjectID,
+			"ServiceName": cfg.CloudRunService,
+			"Pipelines":   getPipelineNames(),
+		})
+	}
 }

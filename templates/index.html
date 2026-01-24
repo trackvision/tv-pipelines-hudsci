@@ -16,6 +16,21 @@
             color: #333;
             border-bottom: 2px solid #4a90d9;
             padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-links {
+            font-size: 0.9rem;
+            font-weight: normal;
+        }
+        .nav-links a {
+            color: #4a90d9;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
         }
         .pipeline-list {
             list-style: none;
@@ -58,7 +73,10 @@
     </style>
 </head>
 <body>
-    <h1>HudSci Pipelines</h1>
+    <h1>
+        HudSci Pipelines
+        <span class="nav-links"><a href="/ui/logs">View Logs</a></span>
+    </h1>
 
     <ul class="pipeline-list">
         {{range .Jobs}}

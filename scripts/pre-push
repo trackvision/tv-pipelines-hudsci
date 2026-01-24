@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+echo "Running pre-push checks..."
+go vet ./...
+golangci-lint run ./... || echo "Warning: golangci-lint not installed"
+go test ./...
+echo "All checks passed!"

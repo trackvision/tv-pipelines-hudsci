@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs - Pipelines</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        .nav {
+            margin-bottom: 1rem;
+        }
+        .nav a {
+            color: #4a90d9;
+            text-decoration: none;
+        }
+        .nav a:hover { text-decoration: underline; }
+
+        .filters {
+            background: white;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .filter-group label { font-weight: 500; color: #555; font-size: 0.9rem; }
+        .filter-group select {
+            padding: 0.4rem 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        button {
+            background: #4a90d9;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        button:hover { background: #357abd; }
+        .auto-refresh {
+            margin-left: auto;
+            font-size: 0.85rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .config-info {
+            background: #e8f4fd;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        .config-info code {
+            background: #d0e8f9;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+        }
+
+        .runs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .run-card {
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .run-card.failed {
+            border-left: 3px solid #dc3545;
+        }
+        .run-card.success {
+            border-left: 3px solid #28a745;
+        }
+
+        .run-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+        }
+        .run-pipeline {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #333;
+            text-transform: uppercase;
+        }
+        .run-time {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .run-duration {
+            font-size: 0.8rem;
+            color: #888;
+            margin-left: 0.5rem;
+        }
+        .run-logs-link {
+            font-size: 0.8rem;
+            color: #4a90d9;
+            text-decoration: none;
+            margin-left: 0.75rem;
+        }
+        .run-logs-link:hover {
+            text-decoration: underline;
+        }
+
+        .steps-list {
+            padding: 0.5rem 0;
+        }
+        .step-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.35rem 1rem 0.35rem 1.5rem;
+            font-size: 0.9rem;
+        }
+        .step-row:hover {
+            background: #f8f9fa;
+        }
+        .step-name {
+            font-family: monospace;
+            color: #444;
+        }
+        .step-duration {
+            font-family: monospace;
+            color: #666;
+            font-size: 0.85rem;
+        }
+        .step-row.failed .step-name {
+            color: #dc3545;
+        }
+        .step-row.failed::before {
+            content: "x ";
+            color: #dc3545;
+        }
+        .step-row.completed::before {
+            content: "";
+            color: #28a745;
+        }
+
+        .run-footer {
+            padding: 0.5rem 1rem;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .run-footer.failed {
+            background: #fff5f5;
+            color: #dc3545;
+        }
+
+        .loading, .no-logs {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            background: white;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/ui/">&larr; Back to pipelines</a>
+    </div>
+    <h1>Pipeline Logs</h1>
+
+    {{if not .Configured}}
+    <div class="config-info">
+        <strong>Logs viewer not configured.</strong><br>
+        Set <code>GCP_PROJECT_ID</code> and <code>CLOUD_RUN_SERVICE</code> environment variables.
+    </div>
+    {{else}}
+    <div class="config-info">
+        Project: <code>{{.ProjectID}}</code> | Service: <code>{{.ServiceName}}</code>
+    </div>
+
+    <div class="filters">
+        <div class="filter-group">
+            <label for="pipeline">Pipeline:</label>
+            <select id="pipeline">
+                <option value="">All</option>
+                {{range .Pipelines}}
+                <option value="{{.}}">{{.}}</option>
+                {{end}}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="since">Time:</label>
+            <select id="since">
+                <option value="1h">Last hour</option>
+                <option value="6h" selected>Last 6 hours</option>
+                <option value="24h">Last 24 hours</option>
+                <option value="72h">Last 3 days</option>
+                <option value="168h">Last 7 days</option>
+            </select>
+        </div>
+        <button onclick="loadLogs()">Refresh</button>
+        <div class="auto-refresh">
+            <label><input type="checkbox" id="autoRefresh"> Auto-refresh</label>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="runCount">-</span>
+        <span id="lastUpdated">-</span>
+    </div>
+
+    <div class="runs-container" id="runsContainer">
+        <div class="loading">Loading...</div>
+    </div>
+    {{end}}
+
+    <script>
+        let autoRefreshInterval = null;
+
+        function formatTime(timestamp) {
+            const d = new Date(timestamp);
+            const day = d.getDate();
+            const month = d.toLocaleString('en-GB', { month: 'short' });
+            const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            return `${day} ${month} ${time}`;
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return '';
+            if (seconds < 0.001) return '<1ms';
+            if (seconds < 1) return Math.round(seconds * 1000) + 'ms';
+            return seconds.toFixed(2) + 's';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function loadLogs() {
+            const pipeline = document.getElementById('pipeline').value;
+            const since = document.getElementById('since').value;
+
+            const params = new URLSearchParams();
+            if (pipeline) params.set('pipeline', pipeline);
+            params.set('since', since);
+            params.set('limit', '500');
+
+            const container = document.getElementById('runsContainer');
+
+            try {
+                const response = await fetch('/logs?' + params.toString());
+                const data = await response.json();
+
+                if (!response.ok) {
+                    container.innerHTML = `<div class="no-logs">Error: ${escapeHtml(data.error || 'Unknown error')}</div>`;
+                    return;
+                }
+
+                const runs = data.runs || [];
+                document.getElementById('runCount').textContent = `${runs.length} pipeline runs`;
+                document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+
+                if (runs.length === 0) {
+                    container.innerHTML = '<div class="no-logs">No pipeline runs found</div>';
+                    return;
+                }
+
+                container.innerHTML = runs.map(run => {
+                    const statusClass = run.success ? 'success' : 'failed';
+                    const stepsHtml = (run.steps || []).map(step => {
+                        const stepClass = step.status === 'failed' ? 'failed' : 'completed';
+                        return `
+                            <div class="step-row ${stepClass}">
+                                <span class="step-name">${escapeHtml(step.name)}</span>
+                                <span class="step-duration">${formatDuration(step.duration)}</span>
+                            </div>
+                        `;
+                    }).join('');
+
+                    const durationText = run.duration ? formatDuration(run.duration) : '';
+                    const footerClass = run.success ? '' : 'failed';
+                    const footerText = run.success
+                        ? (run.duration ? `Completed in ${durationText}` : 'Completed')
+                        : `Failed: ${escapeHtml(run.error) || 'Unknown error'}`;
+
+                    return `
+                        <div class="run-card ${statusClass}">
+                            <div class="run-header">
+                                <span class="run-pipeline">${escapeHtml(run.pipeline)}</span>
+                                <span>
+                                    <span class="run-time">${formatTime(run.start_time)}</span>
+                                    ${durationText ? `<span class="run-duration">(${durationText})</span>` : ''}
+                                    <a href="${run.logs_url}" target="_blank" class="run-logs-link">View in GCP</a>
+                                </span>
+                            </div>
+                            <div class="steps-list">
+                                ${stepsHtml || '<div class="step-row"><span class="step-name">No steps recorded</span></div>'}
+                            </div>
+                            <div class="run-footer ${footerClass}">${footerText}</div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = `<div class="no-logs">Failed to load: ${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        document.getElementById('autoRefresh')?.addEventListener('change', function() {
+            if (this.checked) {
+                autoRefreshInterval = setInterval(loadLogs, 10000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+
+        {{if .Configured}}
+        loadLogs();
+        {{end}}
+    </script>
+</body>
+</html>

@@ -54,6 +54,10 @@ type Config struct {
 	// Default GLNs for SBDH fallback
 	DefaultSenderGLN   string
 	DefaultReceiverGLN string
+
+	// GCP Configuration (for logs viewer)
+	GCPProjectID    string
+	CloudRunService string
 }
 
 // Load loads configuration from environment variables
@@ -145,6 +149,10 @@ func Load() (*Config, error) {
 		// Default GLNs (fallback if not in events)
 		DefaultSenderGLN:   getEnv("DEFAULT_SENDER_GLN", "1234567.89012"), // 7+5 format (company prefix + location ref)
 		DefaultReceiverGLN: getEnv("DEFAULT_RECEIVER_GLN", "9876543.21098"),
+
+		// GCP Configuration
+		GCPProjectID:    os.Getenv("GCP_PROJECT_ID"),
+		CloudRunService: os.Getenv("CLOUD_RUN_SERVICE"),
 	}
 
 	// Validate required fields

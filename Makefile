@@ -1,4 +1,4 @@
-.PHONY: help build test run clean deps fmt lint vet check test-unit test-e2e test-inbound test-outbound reset-inbound reset-outbound docker-build docker-run
+.PHONY: help build test run clean deps fmt lint vet check test-unit test-e2e test-inbound test-outbound reset-inbound reset-outbound docker-build docker-run setup-hooks
 
 # Default target
 .DEFAULT_GOAL := help
@@ -18,6 +18,7 @@ help:
 	@echo "  make docker-run     - Run Docker container"
 	@echo "  make reset-inbound  - Reset inbound pipeline state"
 	@echo "  make reset-outbound - Reset outbound pipeline state"
+	@echo "  make setup-hooks    - Install git pre-push hooks"
 
 # Build the pipeline binary
 build:
@@ -138,3 +139,11 @@ docker-run:
 # Quick run (without rebuild)
 run-quick:
 	@./bin/pipeline
+
+# Install git hooks
+setup-hooks:
+	@echo "Installing git hooks..."
+	@mkdir -p .git/hooks
+	@cp scripts/pre-push .git/hooks/pre-push
+	@chmod +x .git/hooks/pre-push
+	@echo "Done!"
