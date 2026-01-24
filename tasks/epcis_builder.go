@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/trackvision/tv-pipelines-hudsci/configs"
@@ -155,8 +156,12 @@ func buildEPCISJSONDocument(events []map[string]interface{}) map[string]interfac
 		filteredEvents = append(filteredEvents, event)
 	}
 
-	// Sort by eventTime ascending for chronological order
-	// (Already sorted by TiDB query, but ensure it's maintained)
+	// Sort by eventTime ascending for chronological order (matching Mage behavior)
+	sort.Slice(filteredEvents, func(i, j int) bool {
+		timeI, _ := filteredEvents[i]["eventTime"].(string)
+		timeJ, _ := filteredEvents[j]["eventTime"].(string)
+		return timeI < timeJ
+	})
 
 	doc := map[string]interface{}{
 		"@context":     "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld",

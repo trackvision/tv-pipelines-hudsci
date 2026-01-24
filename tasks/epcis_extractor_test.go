@@ -58,8 +58,10 @@ func TestExtractEPCISInboxData(t *testing.T) {
 	assert.Equal(t, "xml123", item.EPCISXMLFileID)
 
 	// Check products extracted
+	// SGTIN 0368462.050165 = indicator(0) + company(0368462) + itemRef(50165) = GTIN-13: 0036846250165
+	// With check digit: 00368462501658
 	assert.Len(t, item.Products, 1)
-	assert.Equal(t, "00368462050163", item.Products[0]["GTIN"]) // GTIN with calculated check digit
+	assert.Equal(t, "00368462501658", item.Products[0]["GTIN"]) // GTIN with calculated check digit
 	assert.Equal(t, 1, item.Products[0]["quantity"])
 }
 
@@ -106,9 +108,11 @@ func TestExtractGTINFromEPC(t *testing.T) {
 		expected string
 	}{
 		{
+			// SGTIN 0368462.050165 = indicator(0) + company(0368462) + itemRef(50165)
+			// GTIN-13: 0036846250165, GTIN-14 with check digit: 00368462501658
 			name:     "URN format",
 			input:    "urn:epc:id:sgtin:0368462.050165.123456",
-			expected: "00368462050163", // 14-digit GTIN with check digit
+			expected: "00368462501658", // 14-digit GTIN with check digit
 		},
 		{
 			name:     "Digital Link format",
@@ -208,13 +212,14 @@ func TestExtractEPCISInboxData_MultipleEvents(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, items, 2, "Should extract 2 shipping events")
 
-	// Both events should share the same products (aggregated from all events)
-	// The extractor only finds unique GTINs (same GTIN with different serial numbers counts as 1)
-	assert.Len(t, items[0].Products, 1, "Should have 1 unique GTIN (same GTIN, different serial)")
-	assert.Len(t, items[1].Products, 1, "Should have 1 unique GTIN (same GTIN, different serial)")
+	// Each shipping event has its OWN products extracted (matching Mage behavior)
+	// Products are NOT aggregated across events
+	assert.Len(t, items[0].Products, 1, "Event 1 should have 1 product")
+	assert.Len(t, items[1].Products, 1, "Event 2 should have 1 product")
 
-	// But the quantity should be 2 (aggregated from both events)
-	assert.Equal(t, 2, items[0].Products[0]["quantity"], "Quantity should be aggregated")
+	// Each event has quantity=1 because each has only 1 EPC in its epcList
+	assert.Equal(t, 1, items[0].Products[0]["quantity"], "Event 1 quantity from its own epcList")
+	assert.Equal(t, 1, items[1].Products[0]["quantity"], "Event 2 quantity from its own epcList")
 }
 
 func TestExtractEPCISInboxData_NoShippingEvents(t *testing.T) {

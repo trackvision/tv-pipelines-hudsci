@@ -42,7 +42,8 @@ func CalculateGS1CheckDigit(base string) string {
 // ParseGLNFromSGLN extracts and calculates the 13-digit GLN from an SGLN URN.
 // Input formats supported:
 //   - urn:epc:id:sgln:CompanyPrefix.LocationRef.Extension
-//   - https://id.gs1.org/414/GLN13/...
+//   - https://id.gs1.org/414/GLN13/... (location GLN)
+//   - https://id.gs1.org/417/GLN13/... (party GLN)
 //
 // Returns the 13-digit GLN with check digit.
 func ParseGLNFromSGLN(sglnURN string) string {
@@ -51,6 +52,7 @@ func ParseGLNFromSGLN(sglnURN string) string {
 	}
 
 	// Handle URN format: urn:epc:id:sgln:030001.111111.0
+	// Also handles double-dot format: urn:epc:id:sgln:120018020383..0
 	if parts, found := strings.CutPrefix(sglnURN, "urn:epc:id:sgln:"); found {
 		segments := strings.Split(parts, ".")
 		if len(segments) < 2 {
@@ -58,6 +60,7 @@ func ParseGLNFromSGLN(sglnURN string) string {
 		}
 
 		// Concatenate company prefix and location ref (12 digits total)
+		// Note: location ref may be empty for some GLNs (double-dot format)
 		gln12 := segments[0] + segments[1]
 
 		// Ensure exactly 12 digits by padding or truncating
@@ -67,18 +70,22 @@ func ParseGLNFromSGLN(sglnURN string) string {
 		return gln12 + CalculateGS1CheckDigit(gln12)
 	}
 
-	// Handle Digital Link format: https://id.gs1.org/414/0300011111116
-	if strings.Contains(sglnURN, "/414/") {
-		parts := strings.Split(sglnURN, "/414/")
-		if len(parts) > 1 {
-			gln := parts[1]
-			// Remove any trailing path elements
-			if idx := strings.Index(gln, "/"); idx > 0 {
-				gln = gln[:idx]
-			}
-			// Digital Link already contains check digit (13 digits)
-			if len(gln) == 13 {
-				return gln
+	// Handle Digital Link format for location GLN (414) and party GLN (417)
+	// https://id.gs1.org/414/0300011111116
+	// https://id.gs1.org/417/0300011111116
+	for _, ai := range []string{"/414/", "/417/"} {
+		if strings.Contains(sglnURN, ai) {
+			parts := strings.Split(sglnURN, ai)
+			if len(parts) > 1 {
+				gln := parts[1]
+				// Remove any trailing path elements
+				if idx := strings.Index(gln, "/"); idx > 0 {
+					gln = gln[:idx]
+				}
+				// Digital Link already contains check digit (13 digits)
+				if len(gln) == 13 {
+					return gln
+				}
 			}
 		}
 	}
@@ -89,6 +96,7 @@ func ParseGLNFromSGLN(sglnURN string) string {
 // ParseGTINFromSGTIN extracts and calculates the 14-digit GTIN from an SGTIN URN.
 // Input formats supported:
 //   - urn:epc:id:sgtin:CompanyPrefix.ItemRef.Serial
+//   - urn:epc:idpat:sgtin:CompanyPrefix.ItemRef.* (pattern format)
 //   - https://id.gs1.org/01/GTIN14/...
 //
 // Returns the 14-digit GTIN with check digit.
@@ -98,16 +106,41 @@ func ParseGTINFromSGTIN(sgtinURN string) string {
 	}
 
 	// Handle URN format: urn:epc:id:sgtin:0368462.050165.123456
-	if parts, found := strings.CutPrefix(sgtinURN, "urn:epc:id:sgtin:"); found {
+	// Also handle idpat format: urn:epc:idpat:sgtin:0368462.050165.*
+	var parts string
+	var found bool
+	if parts, found = strings.CutPrefix(sgtinURN, "urn:epc:id:sgtin:"); !found {
+		parts, found = strings.CutPrefix(sgtinURN, "urn:epc:idpat:sgtin:")
+	}
+
+	if found {
 		segments := strings.Split(parts, ".")
 		if len(segments) < 2 {
 			return ""
 		}
 
-		// GTIN-14 = indicator digit (0) + company prefix + item reference
-		// The indicator digit position is where the item reference digit goes
-		// Total: 13 digits + check digit = 14 digits
-		gtin13 := "0" + segments[0] + segments[1]
+		companyPrefix := segments[0]
+		indicatorAndItemRef := segments[1]
+
+		// SGTIN structure: CompanyPrefix.IndicatorAndItemRef.Serial
+		// The IndicatorAndItemRef contains the indicator digit as the FIRST character
+		// followed by the item reference.
+		//
+		// To reconstruct GTIN-14:
+		// 1. Extract indicator digit (first char of item ref field)
+		// 2. Extract item reference (remaining chars)
+		// 3. GTIN-13 = indicator + company prefix + item reference
+		// 4. Add check digit for GTIN-14
+
+		indicator := "0"
+		itemRef := indicatorAndItemRef
+		if len(indicatorAndItemRef) > 0 {
+			indicator = indicatorAndItemRef[0:1]
+			itemRef = indicatorAndItemRef[1:]
+		}
+
+		// Build GTIN-13 (without check digit): indicator + company prefix + item ref
+		gtin13 := indicator + companyPrefix + itemRef
 
 		// Ensure exactly 13 digits before check digit
 		gtin13 = normalizeToLength(gtin13, 13)

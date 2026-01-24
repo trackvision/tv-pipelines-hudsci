@@ -79,6 +79,11 @@ func TestParseGLNFromSGLN(t *testing.T) {
 			expected: "0300011111116",
 		},
 		{
+			name:     "Digital Link party GLN (417)",
+			sglnURN:  "https://id.gs1.org/417/0300011111116",
+			expected: "0300011111116",
+		},
+		{
 			name:     "Empty string",
 			sglnURN:  "",
 			expected: "",
@@ -112,14 +117,24 @@ func TestParseGTINFromSGTIN(t *testing.T) {
 		expected string
 	}{
 		{
+			// SGTIN: 0368462.050165 means:
+			// - Company prefix: 0368462
+			// - Indicator + ItemRef: 050165 (indicator=0, item_ref=50165)
+			// - GTIN-13: 0 + 0368462 + 50165 = 0036846250165
+			// - GTIN-14: 0036846250165 + check digit (8) = 00368462501658
 			name:     "URN format with serial",
 			sgtinURN: "urn:epc:id:sgtin:0368462.050165.123456",
-			expected: "00368462050163",
+			expected: "00368462501658",
 		},
 		{
+			// SGTIN: 0614141.012345 means:
+			// - Company prefix: 0614141
+			// - Indicator + ItemRef: 012345 (indicator=0, item_ref=12345)
+			// - GTIN-13: 0 + 0614141 + 12345 = 0061414112345
+			// - GTIN-14: 0061414112345 + check digit (2) = 00614141123452
 			name:     "URN format with different prefix length",
 			sgtinURN: "urn:epc:id:sgtin:0614141.012345.12345",
-			expected: "00614141012343",
+			expected: "00614141123452",
 		},
 		{
 			name:     "Digital Link format",
@@ -140,6 +155,12 @@ func TestParseGTINFromSGTIN(t *testing.T) {
 			name:     "Invalid format",
 			sgtinURN: "not-a-valid-urn",
 			expected: "",
+		},
+		{
+			// idpat format (pattern URN) should also work
+			name:     "idpat URN format",
+			sgtinURN: "urn:epc:idpat:sgtin:0368462.050165.*",
+			expected: "00368462501658",
 		},
 	}
 
