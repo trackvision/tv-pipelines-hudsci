@@ -33,6 +33,8 @@ type Config struct {
 	TrustMedDashboardURL string
 	TrustMedUsername     string
 	TrustMedPassword     string
+	TrustMedClientID     string
+	TrustMedCompanyID    string
 
 	// TrustMed Partner API (mTLS)
 	TrustMedEndpoint string
@@ -128,6 +130,8 @@ func Load() (*Config, error) {
 		TrustMedDashboardURL: getEnv("TRUSTMED_DASHBOARD_URL", "https://demo.dashboard.trust.med/api/v1.0"),
 		TrustMedUsername:     os.Getenv("TRUSTMED_USERNAME"),
 		TrustMedPassword:     trustmedPassword,
+		TrustMedClientID:     getEnv("TRUSTMED_CLIENT_ID", "37018"),
+		TrustMedCompanyID:    getEnv("TRUSTMED_COMPANY_ID", "37018"),
 
 		// TrustMed Partner API
 		TrustMedEndpoint: trustmedEndpoint,

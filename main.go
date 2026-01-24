@@ -19,6 +19,7 @@ import (
 	"github.com/trackvision/tv-pipelines-hudsci/configs"
 	"github.com/trackvision/tv-pipelines-hudsci/pipelines"
 	"github.com/trackvision/tv-pipelines-hudsci/pipelines/inbound"
+	"github.com/trackvision/tv-pipelines-hudsci/pipelines/inbound_trustmed"
 	"github.com/trackvision/tv-pipelines-hudsci/pipelines/outbound"
 	"github.com/trackvision/tv-pipelines-hudsci/tasks"
 	"github.com/trackvision/tv-shared-go/logger"
@@ -33,14 +34,16 @@ type PipelineFunc func(ctx context.Context, db *sqlx.DB, cms *tasks.DirectusClie
 
 // Register your pipelines here
 var pipelineRegistry = map[string]PipelineFunc{
-	"inbound":  inbound.Run,
-	"outbound": outbound.Run,
+	"inbound":          inbound.Run,
+	"inbound-trustmed": inbound_trustmed.Run,
+	"outbound":         outbound.Run,
 }
 
 // pipelineSteps maps pipeline names to their step names (for API discovery)
 var pipelineSteps = map[string][]string{
-	"inbound":  inbound.Steps,
-	"outbound": outbound.Steps,
+	"inbound":          inbound.Steps,
+	"inbound-trustmed": inbound_trustmed.Steps,
+	"outbound":         outbound.Steps,
 }
 
 // API response types

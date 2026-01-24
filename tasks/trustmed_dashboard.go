@@ -19,6 +19,8 @@ type TrustMedDashboardClient struct {
 	dashboardURL string
 	username     string
 	password     string
+	clientID     string
+	companyID    string
 	httpClient   *http.Client
 	token        string
 	tokenExpiry  time.Time
@@ -60,15 +62,29 @@ type DispatchStatus struct {
 
 // NewTrustMedDashboardClient creates a new TrustMed Dashboard API client
 func NewTrustMedDashboardClient(cfg *configs.Config) *TrustMedDashboardClient {
+	// Default client/company IDs for demo environment
+	clientID := cfg.TrustMedClientID
+	if clientID == "" {
+		clientID = "37018" // Demo default
+	}
+	companyID := cfg.TrustMedCompanyID
+	if companyID == "" {
+		companyID = "37018" // Demo default
+	}
+
 	logger.Info("Initializing TrustMed Dashboard client",
 		zap.String("dashboard_url", cfg.TrustMedDashboardURL),
 		zap.String("username", cfg.TrustMedUsername),
+		zap.String("client_id", clientID),
+		zap.String("company_id", companyID),
 	)
 
 	return &TrustMedDashboardClient{
 		dashboardURL: strings.TrimSuffix(cfg.TrustMedDashboardURL, "/"),
 		username:     cfg.TrustMedUsername,
 		password:     cfg.TrustMedPassword,
+		clientID:     clientID,
+		companyID:    companyID,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -89,7 +105,7 @@ func (c *TrustMedDashboardClient) getToken(ctx context.Context) (string, error) 
 	payload := map[string]string{
 		"username":  c.username,
 		"password":  c.password,
-		"client_id": "37018", // Default demo client ID
+		"client_id": c.clientID,
 		"scope":     "openid",
 	}
 
@@ -157,11 +173,9 @@ func (c *TrustMedDashboardClient) SearchFiles(ctx context.Context, startDate, en
 		return nil, err
 	}
 
-	// Use default company ID (demo: 37018, prod: 37145)
-	companyID := "37018"
 	url := fmt.Sprintf("%s/de-status/company/%s/log/?start=%s&end=%s&page=%d",
 		c.dashboardURL,
-		companyID,
+		c.companyID,
 		startDate.Format("2006-01-02T15:04:05Z"),
 		endDate.Format("2006-01-02T15:04:05Z"),
 		page,
@@ -305,4 +319,142 @@ func mapTrustMedStatus(statusCode int, statusMsg string) DispatchStatus {
 	}
 
 	return status
+}
+
+// SearchAllFiles searches for all EPCIS files in the date range, handling pagination
+func (c *TrustMedDashboardClient) SearchAllFiles(ctx context.Context, startDate, endDate time.Time, receiverOnly bool) ([]FileRecord, error) {
+	logger.Info("Searching all TrustMed files with pagination",
+		zap.Time("start_date", startDate),
+		zap.Time("end_date", endDate),
+		zap.Bool("receiver_only", receiverOnly),
+	)
+
+	var allRecords []FileRecord
+	page := 1
+
+	for {
+		searchResp, err := c.SearchFiles(ctx, startDate, endDate, page)
+		if err != nil {
+			return nil, err
+		}
+
+		// Filter to only received files if requested
+		for _, record := range searchResp.Results {
+			// is_sender=false means we RECEIVED the file (inbound)
+			if receiverOnly && record.IsSender {
+				continue
+			}
+			allRecords = append(allRecords, record)
+		}
+
+		// Check if there are more pages
+		if searchResp.Next == nil {
+			break
+		}
+		page++
+
+		// Safety limit to prevent infinite loops
+		if page > 100 {
+			logger.Warn("Reached pagination limit", zap.Int("pages", page))
+			break
+		}
+	}
+
+	logger.Info("Completed searching all files",
+		zap.Int("total_records", len(allRecords)),
+		zap.Int("pages", page),
+	)
+
+	return allRecords, nil
+}
+
+// GetDownloadURL gets a temporary download URL for a file (valid ~10 minutes)
+func (c *TrustMedDashboardClient) GetDownloadURL(ctx context.Context, logUUID string) (string, error) {
+	logger.Info("Getting download URL from TrustMed Dashboard",
+		zap.String("log_uuid", logUUID),
+	)
+
+	headers, err := c.getAuthHeaders(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	url := fmt.Sprintf("%s/de-status/log/%s/download", c.dashboardURL, logUUID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("creating download URL request: %w", err)
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("download URL request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("download URL request failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Response is a plain text quoted string
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading download URL response: %w", err)
+	}
+
+	// Remove quotes from the URL string
+	downloadURL := strings.Trim(string(body), "\"")
+
+	logger.Info("Got temporary download URL",
+		zap.String("log_uuid", logUUID),
+	)
+
+	return downloadURL, nil
+}
+
+// DownloadFile downloads file content using the two-step process
+func (c *TrustMedDashboardClient) DownloadFile(ctx context.Context, logUUID string) ([]byte, error) {
+	logger.Info("Downloading file from TrustMed",
+		zap.String("log_uuid", logUUID),
+	)
+
+	// Step 1: Get temporary download URL
+	downloadURL, err := c.GetDownloadURL(ctx, logUUID)
+	if err != nil {
+		return nil, fmt.Errorf("getting download URL: %w", err)
+	}
+
+	// Step 2: Download file content (no auth needed - signed URL)
+	req, err := http.NewRequestWithContext(ctx, "GET", downloadURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating download request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("download request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("download failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading file content: %w", err)
+	}
+
+	logger.Info("Successfully downloaded file",
+		zap.String("log_uuid", logUUID),
+		zap.Int("size_bytes", len(content)),
+	)
+
+	return content, nil
 }
