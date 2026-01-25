@@ -142,12 +142,246 @@ go run .
 
 The service will start on port 8080 (or `PORT` env var).
 
-### HTTP API
+## API Reference
 
-**Local Development:**
+### Authentication
+
+All API endpoints (except `/health`) require authentication via bearer token. The token is your Directus API key.
+
+**Two authentication methods are supported:**
+
+1. **Authorization Header (Recommended)**
+   ```bash
+   curl -H "Authorization: Bearer YOUR_API_KEY" https://pipelines.hudsci.trackvision.ai/jobs
+   ```
+
+2. **X-API-Key Header**
+   ```bash
+   curl -H "X-API-Key: YOUR_API_KEY" https://pipelines.hudsci.trackvision.ai/jobs
+   ```
+
+**Response for unauthorized requests:**
+```json
+{"error": "unauthorized"}
+```
+
+### Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/health` | No | Health check |
+| GET | `/jobs` | Yes | List all pipelines |
+| GET | `/jobs/{name}` | Yes | Get pipeline details and steps |
+| POST | `/run/{name}` | Yes | Execute a pipeline |
+| GET | `/logs` | Yes | Query pipeline logs from GCP |
+
+#### GET /health
+
+Health check endpoint. No authentication required.
+
 ```bash
-# Health Check
+curl https://pipelines.hudsci.trackvision.ai/health
+```
+
+**Response:**
+```json
+{"status": "healthy"}
+```
+
+#### GET /jobs
+
+List all available pipelines.
+
+```bash
+curl -H "Authorization: Bearer $API_KEY" \
+  https://pipelines.hudsci.trackvision.ai/jobs
+```
+
+**Response:**
+```json
+{"jobs": ["inbound", "outbound"]}
+```
+
+#### GET /jobs/{name}
+
+Get pipeline details including all step names.
+
+```bash
+curl -H "Authorization: Bearer $API_KEY" \
+  https://pipelines.hudsci.trackvision.ai/jobs/outbound
+```
+
+**Response:**
+```json
+{
+  "name": "outbound",
+  "tasks": [
+    "poll_approved_shipments",
+    "query_shipment_events",
+    "build_epcis_documents",
+    "add_xml_headers",
+    "manage_dispatch_records",
+    "dispatch_via_trustmed",
+    "poll_dispatch_confirmation",
+    "notify_on_errors"
+  ],
+  "schedule": "@manual"
+}
+```
+
+#### POST /run/{name}
+
+Execute a pipeline.
+
+**Request Body:**
+```json
+{
+  "id": "optional-run-id",
+  "skip_steps": ["step_name_1", "step_name_2"]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | No | Run identifier for logging. Auto-generated if not provided. |
+| `skip_steps` | string[] | No | Step names to skip during execution (for dry-run mode). |
+
+**Example - Full execution:**
+```bash
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  https://pipelines.hudsci.trackvision.ai/run/outbound \
+  -d '{"id": "prod-run-001"}'
+```
+
+**Example - Dry run (skip TrustMed dispatch):**
+```bash
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  https://pipelines.hudsci.trackvision.ai/run/outbound \
+  -d '{
+    "id": "dry-run-001",
+    "skip_steps": ["dispatch_via_trustmed", "poll_dispatch_confirmation"]
+  }'
+```
+
+**Response (success):**
+```json
+{"success": true, "pipeline": "outbound", "id": "prod-run-001"}
+```
+
+**Response (error):**
+```json
+{"success": false, "error": "poll_approved_shipments: no approved shipments found"}
+```
+
+#### GET /logs
+
+Query pipeline logs from GCP Cloud Logging.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pipeline` | string | (all) | Filter by pipeline name |
+| `severity` | string | (all) | Filter by log severity (INFO, WARNING, ERROR) |
+| `since` | duration | 1h | How far back to query (e.g., "30m", "2h", "24h") |
+| `limit` | int | 100 | Maximum log entries (max: 500) |
+
+```bash
+# All logs from the last hour
+curl -H "Authorization: Bearer $API_KEY" \
+  https://pipelines.hudsci.trackvision.ai/logs
+
+# Outbound errors from last 24 hours
+curl -H "Authorization: Bearer $API_KEY" \
+  "https://pipelines.hudsci.trackvision.ai/logs?pipeline=outbound&severity=ERROR&since=24h"
+```
+
+**Response:**
+```json
+{
+  "runs": [
+    {
+      "id": "prod-run-001",
+      "pipeline": "outbound",
+      "started_at": "2025-01-25T10:00:00Z",
+      "entries": [...]
+    }
+  ],
+  "count": 5,
+  "query": {"pipeline": "outbound", "severity": "ERROR", "since": "24h", "limit": 100}
+}
+```
+
+## Web UI
+
+The service includes a web-based UI for running and monitoring pipelines. Access it at the root URL:
+
+- **Local:** http://localhost:8080/ui/
+- **hudscidev:** https://pipelines.hudscidev.trackvision.ai/ui/
+- **hudsci:** https://pipelines.hudsci.trackvision.ai/ui/
+
+**Note:** The UI endpoints (`/ui/*`) do not require authentication for browser access.
+
+### UI Pages
+
+#### Pipeline List (`/ui/`)
+
+The index page displays all available pipelines with links to:
+- **Run** - Open the pipeline execution page
+- **View Logs** - Open the logs viewer filtered by pipeline
+
+#### Run Pipeline (`/ui/jobs/{name}`)
+
+The job page shows:
+- **Pipeline name** and list of all steps
+- **Run ID** input field (optional, auto-generated if empty)
+- **Skip Steps** input field for dry-run mode
+- **Run Pipeline** button to execute
+
+**Using Skip Steps for Dry-Run Mode:**
+
+The "Skip Steps" field accepts a comma-separated list of step names to skip during execution. This is useful for:
+- Testing pipeline logic without external side effects
+- Processing data without dispatching to TrustMed
+- Debugging specific pipeline stages
+
+**Example - Skip TrustMed dispatch:**
+```
+dispatch_via_trustmed, poll_dispatch_confirmation
+```
+
+To find available step names, use the `/jobs/{name}` API endpoint or view the step list on the UI page.
+
+#### Logs Viewer (`/ui/logs`)
+
+The logs page provides a visual interface for querying pipeline logs:
+
+**Filters:**
+- **Pipeline** dropdown - Filter by specific pipeline
+- **Severity** dropdown - Filter by INFO, WARNING, or ERROR
+- **Since** dropdown - Time range (15m, 30m, 1h, 3h, 12h, 24h)
+- **Limit** input - Number of runs to display
+
+**Features:**
+- Logs are grouped by pipeline run
+- Each run shows the run ID, pipeline name, and timestamp
+- Expandable log entries with color-coded severity
+- Direct links to GCP Cloud Logging for detailed investigation
+
+**Requirements:**
+- `GCP_PROJECT_ID` environment variable must be set
+- `CLOUD_RUN_SERVICE` environment variable must be set
+- Service account must have `logging.logEntries.list` permission
+
+### Local Development (curl)
+
+```bash
+# Health Check (no auth required)
 curl http://localhost:8080/health
+
+# List pipelines
+curl http://localhost:8080/jobs
 
 # Run Inbound Pipeline
 curl -X POST http://localhost:8080/run/inbound \
@@ -160,35 +394,35 @@ curl -X POST http://localhost:8080/run/outbound \
   -d '{"id": "test-run"}'
 ```
 
-**Cloud Run (hudscidev):**
+### Cloud Run Examples
 
 Set your Directus API key:
 ```bash
-export DIRECTUS_KEY="your-directus-api-key"
+export API_KEY="your-directus-api-key"
 ```
 
 ```bash
-# Health Check
-curl https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/health \
-  -H "Authorization: Bearer $DIRECTUS_KEY"
+# Health Check (no auth required)
+curl https://pipelines.hudsci.trackvision.ai/health
 
-# Run Inbound Pipeline
-curl -X POST https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/run/inbound \
-  -H "Authorization: Bearer $DIRECTUS_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"id": "test-inbound-'$(date +%s)'"}'
+# List pipelines
+curl -H "Authorization: Bearer $API_KEY" \
+  https://pipelines.hudsci.trackvision.ai/jobs
 
 # Run Outbound Pipeline
-curl -X POST https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/run/outbound \
-  -H "Authorization: Bearer $DIRECTUS_KEY" \
+curl -X POST -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"id": "test-outbound-'$(date +%s)'"}'
+  https://pipelines.hudsci.trackvision.ai/run/outbound \
+  -d '{"id": "prod-'$(date +%s)'"}'
 
-# Run Outbound WITHOUT TrustMed dispatch (dry run)
-curl -X POST https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/run/outbound \
-  -H "Authorization: Bearer $DIRECTUS_KEY" \
+# Dry run (skip TrustMed dispatch)
+curl -X POST -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"id": "test-dry-'$(date +%s)'", "dry_run": true}'
+  https://pipelines.hudsci.trackvision.ai/run/outbound \
+  -d '{
+    "id": "dry-'$(date +%s)'",
+    "skip_steps": ["dispatch_via_trustmed", "poll_dispatch_confirmation"]
+  }'
 ```
 
 ## Development
