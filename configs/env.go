@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/trackvision/tv-shared-go/env"
+	"github.com/trackvision/tv-shared-go/logger"
+	"go.uber.org/zap"
 )
 
 // Config holds all configuration for HudSci pipelines
@@ -71,7 +73,14 @@ func Load() (*Config, error) {
 	}
 
 	// TrustMed password (environment-specific secret with same name)
-	trustmedPassword, _ := env.GetSecret("TRUSTMED_PASSWORD")
+	trustmedPassword, trustmedPwdErr := env.GetSecret("TRUSTMED_PASSWORD")
+	if trustmedPwdErr != nil {
+		logger.Warn("TRUSTMED_PASSWORD secret not found, TrustMed Dashboard operations may fail",
+			zap.Error(trustmedPwdErr))
+	} else {
+		logger.Info("TRUSTMED_PASSWORD loaded",
+			zap.Int("length", len(trustmedPassword)))
+	}
 
 	// Database password (optional for local dev)
 	dbPassword, _ := env.GetSecret("DB_PASSWORD")

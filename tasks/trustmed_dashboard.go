@@ -75,6 +75,7 @@ func NewTrustMedDashboardClient(cfg *configs.Config) *TrustMedDashboardClient {
 	logger.Info("Initializing TrustMed Dashboard client",
 		zap.String("dashboard_url", cfg.TrustMedDashboardURL),
 		zap.String("username", cfg.TrustMedUsername),
+		zap.Int("password_length", len(cfg.TrustMedPassword)),
 		zap.String("client_id", clientID),
 		zap.String("company_id", companyID),
 	)
