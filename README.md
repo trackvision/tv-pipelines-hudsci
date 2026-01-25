@@ -145,23 +145,51 @@ The service will start on port 8080 (or `PORT` env var).
 
 ### HTTP API
 
-**Health Check**
+**Local Development:**
 ```bash
+# Health Check
 curl http://localhost:8080/health
-```
 
-**Run Inbound Pipeline**
-```bash
+# Run Inbound Pipeline
 curl -X POST http://localhost:8080/run/inbound \
   -H "Content-Type: application/json" \
   -d '{"id": "test-run"}'
-```
 
-**Run Outbound Pipeline**
-```bash
+# Run Outbound Pipeline
 curl -X POST http://localhost:8080/run/outbound \
   -H "Content-Type: application/json" \
   -d '{"id": "test-run"}'
+```
+
+**Cloud Run (hudscidev):**
+
+Set your Directus API key:
+```bash
+export DIRECTUS_KEY="your-directus-api-key"
+```
+
+```bash
+# Health Check
+curl https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/health \
+  -H "Authorization: Bearer $DIRECTUS_KEY"
+
+# Run Inbound Pipeline
+curl -X POST https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/run/inbound \
+  -H "Authorization: Bearer $DIRECTUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-inbound-'$(date +%s)'"}'
+
+# Run Outbound Pipeline
+curl -X POST https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/run/outbound \
+  -H "Authorization: Bearer $DIRECTUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-outbound-'$(date +%s)'"}'
+
+# Run Outbound WITHOUT TrustMed dispatch (dry run)
+curl -X POST https://pipelines-hudsci-c6i72vxwbq-uk.a.run.app/run/outbound \
+  -H "Authorization: Bearer $DIRECTUS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-dry-'$(date +%s)'", "dry_run": true}'
 ```
 
 ## Development
