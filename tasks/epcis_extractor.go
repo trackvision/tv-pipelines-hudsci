@@ -46,7 +46,12 @@ type VocabularyList struct {
 
 // Vocabulary represents a vocabulary (products or locations)
 type Vocabulary struct {
-	Type              string              `xml:"type,attr"`
+	Type                   string                  `xml:"type,attr"`
+	VocabularyElementList  *VocabularyElementList  `xml:"VocabularyElementList"`
+}
+
+// VocabularyElementList contains vocabulary elements
+type VocabularyElementList struct {
 	VocabularyElement []VocabularyElement `xml:"VocabularyElement"`
 }
 
@@ -287,7 +292,11 @@ func extractExtractedLocation(masterData *EPCISMasterData) []ExtractedLocation {
 			continue
 		}
 
-		for _, elem := range vocab.VocabularyElement {
+		if vocab.VocabularyElementList == nil {
+			continue
+		}
+
+		for _, elem := range vocab.VocabularyElementList.VocabularyElement {
 			gln := extractGLNFromURN(elem.ID)
 			if gln == "" {
 				continue

@@ -93,46 +93,40 @@ func PollTrustMedFiles(ctx context.Context, dashboard *TrustMedDashboardClient, 
 		// Generate filename
 		filename := fmt.Sprintf("trustmed_%s.xml", record.LogGuid)
 
-		// Upload to Directus INPUT_XML folder
-		if cfg.FolderInputXML != "" {
-			uploadParams := UploadFileParams{
-				Filename:    filename,
-				Content:     content,
-				FolderID:    cfg.FolderInputXML,
-				Title:       fmt.Sprintf("TrustMed Inbound - %s", record.LogGuid),
-				ContentType: "application/xml",
-			}
-
-			result, err := cms.UploadFile(ctx, uploadParams)
-			if err != nil {
-				logger.Error("Failed to upload file to Directus",
-					zap.String("log_uuid", record.LogGuid),
-					zap.Error(err),
-				)
-				failedCount++
-				continue
-			}
-
-			xmlFiles = append(xmlFiles, types.XMLFile{
-				ID:       result.ID,
-				Filename: filename,
-				Content:  content,
-				Uploaded: time.Now(),
-			})
-
-			logger.Info("Archived TrustMed file to Directus",
-				zap.String("log_uuid", record.LogGuid),
-				zap.String("directus_file_id", result.ID),
-			)
-		} else {
-			// No folder configured - just return the content without archiving
-			xmlFiles = append(xmlFiles, types.XMLFile{
-				ID:       record.LogGuid,
-				Filename: filename,
-				Content:  content,
-				Uploaded: time.Now(),
-			})
+		// Upload to Directus INPUT_XML folder (required)
+		if cfg.FolderInputXML == "" {
+			return nil, fmt.Errorf("DIRECTUS_FOLDER_INPUT_XML is required for inbound pipeline")
 		}
+
+		uploadParams := UploadFileParams{
+			Filename:    filename,
+			Content:     content,
+			FolderID:    cfg.FolderInputXML,
+			Title:       fmt.Sprintf("TrustMed Inbound - %s", record.LogGuid),
+			ContentType: "application/xml",
+		}
+
+		result, err := cms.UploadFile(ctx, uploadParams)
+		if err != nil {
+			logger.Error("Failed to upload file to Directus",
+				zap.String("log_uuid", record.LogGuid),
+				zap.Error(err),
+			)
+			failedCount++
+			continue
+		}
+
+		xmlFiles = append(xmlFiles, types.XMLFile{
+			ID:       result.ID,
+			Filename: filename,
+			Content:  content,
+			Uploaded: time.Now(),
+		})
+
+		logger.Info("Archived TrustMed file to Directus",
+			zap.String("log_uuid", record.LogGuid),
+			zap.String("directus_file_id", result.ID),
+		)
 
 		lastLogUUID = record.LogGuid
 	}
