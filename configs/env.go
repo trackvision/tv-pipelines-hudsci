@@ -70,38 +70,17 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DIRECTUS_CMS_API_KEY: %w", err)
 	}
 
-	// TrustMed passwords (try demo first, fall back to prod if not found)
-	trustmedPassword, _ := env.GetSecret("TRUSTMED_PASSWORD_DEMO")
-	if trustmedPassword == "" {
-		trustmedPassword, _ = env.GetSecret("TRUSTMED_PASSWORD_PROD")
-	}
+	// TrustMed password (environment-specific secret with same name)
+	trustmedPassword, _ := env.GetSecret("TRUSTMED_PASSWORD")
 
 	// Database password (optional for local dev)
 	dbPassword, _ := env.GetSecret("DB_PASSWORD")
 
-	// Determine if we're running in production (use prod certs)
-	useProdCerts := os.Getenv("USE_PROD_CERTS") == "true"
-
-	// Select TrustMed config based on environment
+	// TrustMed config - environment determines demo vs prod via terraform
 	trustmedEndpoint := getEnv("TRUSTMED_ENDPOINT", "https://demo.partner.trust.med/v1/client/storage")
-	trustmedCertFile := getEnv("TRUSTMED_CERTFILE", "certs/trustmed/client-cert.crt")
-	trustmedKeyFile := getEnv("TRUSTMED_KEYFILE", "certs/trustmed/client-key.key")
-	trustmedCAFile := getEnv("TRUSTMED_CAFILE", "certs/trustmed/trustmed-ca.crt")
-
-	if useProdCerts {
-		if prodEndpoint := os.Getenv("TRUSTMED_ENDPOINT_PROD"); prodEndpoint != "" {
-			trustmedEndpoint = prodEndpoint
-		}
-		if prodCert := os.Getenv("TRUSTMED_CERTFILE_PROD"); prodCert != "" {
-			trustmedCertFile = prodCert
-		}
-		if prodKey := os.Getenv("TRUSTMED_KEYFILE_PROD"); prodKey != "" {
-			trustmedKeyFile = prodKey
-		}
-		if prodCA := os.Getenv("TRUSTMED_CAFILE_PROD"); prodCA != "" {
-			trustmedCAFile = prodCA
-		}
-	}
+	trustmedCertFile := getEnv("TRUSTMED_CERTFILE", "/TRUSTMED_CLIENT_CERT/value")
+	trustmedKeyFile := getEnv("TRUSTMED_KEYFILE", "/TRUSTMED_CLIENT_KEY/value")
+	trustmedCAFile := getEnv("TRUSTMED_CAFILE", "/TRUSTMED_CA_CERT/value")
 
 	// API key for auth (optional - if not set, auth is disabled)
 	cmsAPIKey, _ := env.GetSecret("CMS_API_KEY")
