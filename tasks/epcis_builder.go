@@ -73,13 +73,8 @@ func BuildEPCISDocuments(ctx context.Context, cfg *configs.Config, shipmentsWith
 			continue
 		}
 
-		// Debug: Log event count and sample of JSON being sent to converter
-		eventCount := 0
-		if body, ok := epcisDoc["epcisBody"].(map[string]interface{}); ok {
-			if eventList, ok := body["eventList"].([]map[string]interface{}); ok {
-				eventCount = len(eventList)
-			}
-		}
+		// Debug: Log event count
+		eventCount := len(epcisDoc.EPCISBody.EventList)
 
 		// Log a truncated sample of the JSON for debugging
 		jsonSample := string(epcisJSONBytes)
@@ -142,9 +137,26 @@ func BuildEPCISDocuments(ctx context.Context, cfg *configs.Config, shipmentsWith
 	return results, nil
 }
 
+// EPCISDocumentJSON represents an EPCIS 2.0 JSON-LD document with canonical field order.
+// CRITICAL: Field order matters for the EPCIS converter - must match this exact order.
+// This is different from EPCISDocument in epcis_extractor.go which is for inbound parsing.
+type EPCISDocumentJSON struct {
+	Context       string        `json:"@context"`
+	Type          string        `json:"type"`
+	SchemaVersion string        `json:"schemaVersion"`
+	CreationDate  string        `json:"creationDate"`
+	EPCISBody     EPCISBodyJSON `json:"epcisBody"`
+}
+
+// EPCISBodyJSON represents the body of an EPCIS document for JSON serialization
+type EPCISBodyJSON struct {
+	EventList []map[string]interface{} `json:"eventList"`
+}
+
 // buildEPCISJSONDocument creates an EPCIS 2.0 JSON-LD document from event list.
 // Returns a clean EPCIS document with events only (no master data - that's added to XML later).
-func buildEPCISJSONDocument(events []map[string]interface{}) map[string]interface{} {
+// CRITICAL: Uses struct to ensure correct field order for EPCIS converter.
+func buildEPCISJSONDocument(events []map[string]interface{}) EPCISDocumentJSON {
 	// Filter out receiving events - outbound dispatch shouldn't include these.
 	// Handles multiple bizStep formats (short form, CBV URN, GS1 Digital Link).
 	filteredEvents := make([]map[string]interface{}, 0, len(events))
@@ -163,15 +175,13 @@ func buildEPCISJSONDocument(events []map[string]interface{}) map[string]interfac
 		return timeI < timeJ
 	})
 
-	doc := map[string]interface{}{
-		"@context":     "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld",
-		"type":         "EPCISDocument",
-		"schemaVersion": "2.0",
-		"creationDate": time.Now().UTC().Format(time.RFC3339),
-		"epcisBody": map[string]interface{}{
-			"eventList": filteredEvents,
+	return EPCISDocumentJSON{
+		Context:       "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld",
+		Type:          "EPCISDocument",
+		SchemaVersion: "2.0",
+		CreationDate:  time.Now().UTC().Format(time.RFC3339),
+		EPCISBody: EPCISBodyJSON{
+			EventList: filteredEvents,
 		},
 	}
-
-	return doc
 }

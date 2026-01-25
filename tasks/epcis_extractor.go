@@ -19,8 +19,8 @@ const (
 
 // EPCISDocument represents the root EPCIS XML document
 type EPCISDocument struct {
-	XMLName    xml.Name   `xml:"EPCISDocument"`
-	EPCISBody  EPCISBody  `xml:"EPCISBody"`
+	XMLName     xml.Name     `xml:"EPCISDocument"`
+	EPCISBody   EPCISBody    `xml:"EPCISBody"`
 	EPCISHeader *EPCISHeader `xml:"EPCISHeader"`
 }
 
@@ -73,14 +73,22 @@ type EventList struct {
 	AggregationEvents []AggregationEvent `xml:"AggregationEvent"`
 }
 
-// ObjectEvent represents an EPCIS object event
-type ObjectEvent struct {
-	EventTime       string           `xml:"eventTime"`
-	BizStep         string           `xml:"bizStep"`
-	Disposition     string           `xml:"disposition"`
-	EPCList         *EPCList         `xml:"epcList"`
+// ObjectEventExtension contains sourceList/destinationList that may be nested in extension
+type ObjectEventExtension struct {
 	SourceList      *SourceList      `xml:"sourceList"`
 	DestinationList *DestinationList `xml:"destinationList"`
+}
+
+// ObjectEvent represents an EPCIS object event
+// Note: sourceList/destinationList can be either at root level OR inside extension
+type ObjectEvent struct {
+	EventTime       string                `xml:"eventTime"`
+	BizStep         string                `xml:"bizStep"`
+	Disposition     string                `xml:"disposition"`
+	EPCList         *EPCList              `xml:"epcList"`
+	SourceList      *SourceList           `xml:"sourceList"`
+	DestinationList *DestinationList      `xml:"destinationList"`
+	Extension       *ObjectEventExtension `xml:"extension"`
 }
 
 // AggregationEvent represents an EPCIS aggregation event
@@ -171,7 +179,7 @@ func extractFromXML(ctx context.Context, xmlFile types.XMLFile, cms *DirectusCli
 		logger.Info("Extracted location master data", zap.Int("count", len(locationsByGLN)))
 	}
 
-	// Find shipping events
+	// Find shipping events (passing full event list for product extraction)
 	shippingEvents := findShippingEvents(doc.EPCISBody.EventList)
 	if len(shippingEvents) == 0 {
 		logger.Warn("No shipping events found in file", zap.String("filename", xmlFile.Filename))
@@ -180,20 +188,19 @@ func extractFromXML(ctx context.Context, xmlFile types.XMLFile, cms *DirectusCli
 
 	logger.Info("Found shipping events", zap.Int("count", len(shippingEvents)))
 
+	// Extract products and containers from ALL events in the document (matching Mage behavior)
+	products := extractProductsFromAllEvents(ctx, doc.EPCISBody.EventList, cms)
+	containers := extractContainersFromAllEvents(doc.EPCISBody.EventList)
+
+	logger.Info("Extracted from all events",
+		zap.Int("products", len(products)),
+		zap.Int("containers", len(containers)),
+	)
+
 	// Extract inbox data from each shipping event
-	// Products and containers are extracted from ONLY the shipping event (matching Mage behavior)
 	items := make([]EPCISInboxItem, 0, len(shippingEvents))
 
 	for _, event := range shippingEvents {
-		// Extract products and containers from THIS shipping event only
-		products := extractProductsFromEvent(ctx, event, cms)
-		containers := extractContainersFromEvent(event)
-
-		logger.Info("Extracted from shipping event",
-			zap.Int("products", len(products)),
-			zap.Int("containers", len(containers)),
-		)
-
 		item := extractInboxDataFromEvent(event, xmlFile, locationsByGLN, products, containers)
 		if item != nil {
 			items = append(items, *item)
@@ -214,16 +221,27 @@ type ShippingEvent struct {
 }
 
 // findShippingEvents finds all shipping events in the event list
+// Bug fix #1: Check both root-level and extension-nested sourceList/destinationList
 func findShippingEvents(eventList EventList) []ShippingEvent {
 	events := make([]ShippingEvent, 0)
 
 	// Check object events
 	for _, objEvent := range eventList.ObjectEvents {
 		if strings.Contains(strings.ToLower(objEvent.BizStep), "shipping") {
+			// Bug fix #1: Get sourceList/destinationList from extension if not at root level
+			sourceList := objEvent.SourceList
+			destList := objEvent.DestinationList
+			if sourceList == nil && objEvent.Extension != nil {
+				sourceList = objEvent.Extension.SourceList
+			}
+			if destList == nil && objEvent.Extension != nil {
+				destList = objEvent.Extension.DestinationList
+			}
+
 			events = append(events, ShippingEvent{
 				EventTime:       objEvent.EventTime,
-				SourceList:      objEvent.SourceList,
-				DestinationList: objEvent.DestinationList,
+				SourceList:      sourceList,
+				DestinationList: destList,
 				EPCList:         objEvent.EPCList,
 			})
 		}
@@ -247,12 +265,12 @@ func findShippingEvents(eventList EventList) []ShippingEvent {
 
 // ExtractedLocation represents location information from EPCIS master data
 type ExtractedLocation struct {
-	GLN         string
-	Name        string
-	Address     string
-	City        string
-	State       string
-	PostalCode  string
+	GLN        string
+	Name       string
+	Address    string
+	City       string
+	State      string
+	PostalCode string
 }
 
 // extractExtractedLocation extracts location information from EPCIS master data
@@ -342,7 +360,7 @@ func extractInboxDataFromEvent(
 		}
 	}
 
-	// Helper to format location display
+	// Helper to format location display (matching Mage output format)
 	formatLocation := func(gln string) string {
 		if gln == "" {
 			return ""
@@ -413,34 +431,41 @@ func findParty(list interface{}, partyType string) string {
 	return ""
 }
 
-// extractProductsFromEvent extracts products from a single shipping event.
-// Matches Mage behavior: only extracts from the shipping event's epcList, not all events.
-// Queries Directus for product names when available.
-func extractProductsFromEvent(ctx context.Context, event ShippingEvent, cms *DirectusClient) []map[string]interface{} {
+// extractProductsFromAllEvents extracts products from ALL events in the document.
+// IMPORTANT: Matches Mage behavior exactly:
+// 1. Extract GTINs from epcList in ALL events (NOT childEPCs)
+// 2. Extract GTINs from parentID in AggregationEvents (with quantity=1)
+// 3. Aggregate by GTIN, summing quantities
+func extractProductsFromAllEvents(ctx context.Context, eventList EventList, cms *DirectusClient) []map[string]interface{} {
 	gtinCounts := make(map[string]int)
 	gtinNames := make(map[string]string)
 
-	// Extract from ObjectEvent's epcList
-	if event.EPCList != nil {
-		for _, epc := range event.EPCList.EPC {
-			gtin := extractGTINFromEPC(epc)
-			if gtin != "" {
-				gtinCounts[gtin]++
+	// Extract from all ObjectEvents' epcList only (not childEPCs - matching Mage)
+	for _, objEvent := range eventList.ObjectEvents {
+		if objEvent.EPCList != nil {
+			for _, epc := range objEvent.EPCList.EPC {
+				gtin := extractGTINFromEPC(epc)
+				if gtin != "" {
+					gtinCounts[gtin]++
+				}
 			}
 		}
 	}
 
-	// Extract from AggregationEvent's childEPCs
-	if event.ChildEPCs != nil {
-		for _, epc := range event.ChildEPCs.EPC {
-			gtin := extractGTINFromEPC(epc)
+	// Extract from all AggregationEvents
+	// IMPORTANT: Mage extracts from parentID (qty=1 each) but NOT from childEPCs
+	for _, aggEvent := range eventList.AggregationEvents {
+		// Extract GTIN from parentID if it's an SGTIN (case-level GTIN)
+		// Add with quantity=1 (matching Mage behavior line 178)
+		if aggEvent.ParentID != "" {
+			gtin := extractGTINFromEPC(aggEvent.ParentID)
 			if gtin != "" {
 				gtinCounts[gtin]++
 			}
 		}
+		// NOTE: Mage does NOT extract from childEPCs in the transformer
+		// The childEPCs extraction is in event_master_data_extractor.py which is for outbound
 	}
-
-	// NOTE: Mage does NOT extract GTIN from parentID, so we don't either
 
 	// Query Directus for product names
 	for gtin := range gtinCounts {
@@ -478,26 +503,30 @@ func extractProductsFromEvent(ctx context.Context, event ShippingEvent, cms *Dir
 	return products
 }
 
-// extractContainersFromEvent extracts containers (SSCCs) from a single shipping event.
-// Matches Mage behavior: only extracts from the shipping event, not all events.
-func extractContainersFromEvent(event ShippingEvent) []map[string]interface{} {
+// extractContainersFromAllEvents extracts containers (SSCCs) from ALL events in the document.
+// Matches Mage behavior: extracts SSCCs from epcList and parentID
+func extractContainersFromAllEvents(eventList EventList) []map[string]interface{} {
 	ssccCounts := make(map[string]int)
 
-	// For ObjectEvent: extract SSCCs from epcList
-	if event.EPCList != nil {
-		for _, epc := range event.EPCList.EPC {
-			sscc := extractSSCCFromEPC(epc)
-			if sscc != "" {
-				ssccCounts[sscc]++
+	// Extract SSCCs from ObjectEvents' epcList
+	for _, objEvent := range eventList.ObjectEvents {
+		if objEvent.EPCList != nil {
+			for _, epc := range objEvent.EPCList.EPC {
+				sscc := extractSSCCFromEPC(epc)
+				if sscc != "" {
+					ssccCounts[sscc]++
+				}
 			}
 		}
 	}
 
-	// For AggregationEvent: extract SSCC from parentID (the container)
-	if event.ParentID != "" {
-		sscc := extractSSCCFromEPC(event.ParentID)
-		if sscc != "" {
-			ssccCounts[sscc]++
+	// Extract SSCCs from AggregationEvents' parentID (the container)
+	for _, aggEvent := range eventList.AggregationEvents {
+		if aggEvent.ParentID != "" {
+			sscc := extractSSCCFromEPC(aggEvent.ParentID)
+			if sscc != "" {
+				ssccCounts[sscc]++
+			}
 		}
 	}
 
@@ -526,7 +555,7 @@ func extractGTINFromEPC(epc string) string {
 }
 
 // extractSSCCFromEPC extracts SSCC from EPC URN or Digital Link format.
-// Returns an 18-digit SSCC with proper GS1 check digit.
+// Bug fix #3: Returns 17-digit SSCC WITHOUT check digit to match Mage behavior.
 func extractSSCCFromEPC(epc string) string {
-	return ParseSSCCFromURN(epc)
+	return ParseSSCCFromURNNoCheckDigit(epc)
 }

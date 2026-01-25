@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -141,7 +142,8 @@ func AddXMLHeaders(ctx context.Context, cms *DirectusClient, cfg *configs.Config
 
 // extractShippingURNs extracts sender and receiver URNs from shipping event.
 // Handles multiple bizStep formats (short form, CBV URN, GS1 Digital Link).
-// Checks both owning_party and location types for SBDH sender/receiver.
+// IMPORTANT: Uses location type for SBDH sender/receiver (matching Mage behavior).
+// The location type points to physical location, owning_party points to legal entity.
 func extractShippingURNs(events []map[string]interface{}, cfg *configs.Config) (string, string) {
 	for _, event := range events {
 		bizStep, ok := event["bizStep"].(string)
@@ -150,7 +152,7 @@ func extractShippingURNs(events []map[string]interface{}, cfg *configs.Config) (
 		}
 
 		// Extract sender from sourceList
-		// Priority: owning_party first (for SBDH), then location
+		// Priority: location first (for SBDH), then owning_party
 		var senderURN string
 		if sourceList, ok := event["sourceList"].([]interface{}); ok {
 			for _, source := range sourceList {
@@ -160,13 +162,13 @@ func extractShippingURNs(events []map[string]interface{}, cfg *configs.Config) (
 					if urn == "" {
 						continue
 					}
-					// Prefer owning_party for SBDH
-					if sourceType == "owning_party" || strings.HasSuffix(sourceType, ":owning_party") {
+					// Prefer location for SBDH (physical destination)
+					if sourceType == "location" || strings.HasSuffix(sourceType, ":location") {
 						senderURN = urn
 						break
 					}
-					// Fall back to location if no owning_party found yet
-					if senderURN == "" && (sourceType == "location" || strings.HasSuffix(sourceType, ":location")) {
+					// Fall back to owning_party if no location found yet
+					if senderURN == "" && (sourceType == "owning_party" || strings.HasSuffix(sourceType, ":owning_party")) {
 						senderURN = urn
 					}
 				}
@@ -174,7 +176,7 @@ func extractShippingURNs(events []map[string]interface{}, cfg *configs.Config) (
 		}
 
 		// Extract receiver from destinationList
-		// Priority: owning_party first (for SBDH), then location
+		// Priority: location first (for SBDH), then owning_party
 		var receiverURN string
 		if destList, ok := event["destinationList"].([]interface{}); ok {
 			for _, dest := range destList {
@@ -184,13 +186,13 @@ func extractShippingURNs(events []map[string]interface{}, cfg *configs.Config) (
 					if urn == "" {
 						continue
 					}
-					// Prefer owning_party for SBDH
-					if destType == "owning_party" || strings.HasSuffix(destType, ":owning_party") {
+					// Prefer location for SBDH (physical destination)
+					if destType == "location" || strings.HasSuffix(destType, ":location") {
 						receiverURN = urn
 						break
 					}
-					// Fall back to location if no owning_party found yet
-					if receiverURN == "" && (destType == "location" || strings.HasSuffix(destType, ":location")) {
+					// Fall back to owning_party if no location found yet
+					if receiverURN == "" && (destType == "owning_party" || strings.HasSuffix(destType, ":owning_party")) {
 						receiverURN = urn
 					}
 				}
@@ -398,41 +400,71 @@ func convertToIDPat(baseURN string) string {
 	return baseURN + ".*"
 }
 
-// extractMasterDataFromEvents queries Directus for location and product master data
+// extractMasterDataFromEvents queries Directus for location and product master data.
+// Location order is deterministic to match Mage output:
+// 1. Destination locations from shipping event (in order)
+// 2. Source locations from shipping event (in order)
+// 3. Other locations from bizLocation/readPoint (sorted by URN)
 func extractMasterDataFromEvents(ctx context.Context, cms *DirectusClient, events []map[string]interface{}) ([]LocationMasterData, []ProductMasterData, error) {
-	// Extract unique location URNs
-	locationURNs := make(map[string]bool)
+	// Collect location URNs in order matching Mage:
+	// 1. First, destination locations from shipping event
+	// 2. Then, source locations from shipping event
+	// 3. Then, other locations sorted by URN
+	var orderedLocationURNs []string
+	seen := make(map[string]bool)
+
+	// Find shipping event and extract destination/source URNs in order
 	for _, event := range events {
-		if readPoint, ok := event["readPoint"].(map[string]interface{}); ok {
-			if id, ok := readPoint["id"].(string); ok && strings.Contains(id, "sgln") {
-				locationURNs[id] = true
-			}
+		bizStep, ok := event["bizStep"].(string)
+		if !ok || !IsShippingBizStep(bizStep) {
+			continue
 		}
-		if bizLoc, ok := event["bizLocation"].(map[string]interface{}); ok {
-			if id, ok := bizLoc["id"].(string); ok && strings.Contains(id, "sgln") {
-				locationURNs[id] = true
-			}
-		}
-		// Also check sourceList and destinationList
-		if sourceList, ok := event["sourceList"].([]interface{}); ok {
-			for _, src := range sourceList {
-				if srcMap, ok := src.(map[string]interface{}); ok {
-					if urn, ok := srcMap["source"].(string); ok && strings.Contains(urn, "sgln") {
-						locationURNs[urn] = true
-					}
-				}
-			}
-		}
+
+		// Destination locations first (matches Mage order)
 		if destList, ok := event["destinationList"].([]interface{}); ok {
 			for _, dst := range destList {
 				if dstMap, ok := dst.(map[string]interface{}); ok {
-					if urn, ok := dstMap["destination"].(string); ok && strings.Contains(urn, "sgln") {
-						locationURNs[urn] = true
+					if urn, ok := dstMap["destination"].(string); ok && strings.Contains(urn, "sgln") && !seen[urn] {
+						orderedLocationURNs = append(orderedLocationURNs, urn)
+						seen[urn] = true
 					}
 				}
 			}
 		}
+
+		// Then source locations
+		if sourceList, ok := event["sourceList"].([]interface{}); ok {
+			for _, src := range sourceList {
+				if srcMap, ok := src.(map[string]interface{}); ok {
+					if urn, ok := srcMap["source"].(string); ok && strings.Contains(urn, "sgln") && !seen[urn] {
+						orderedLocationURNs = append(orderedLocationURNs, urn)
+						seen[urn] = true
+					}
+				}
+			}
+		}
+		break // Only process first shipping event
 	}
+
+	// Collect remaining locations from bizLocation/readPoint
+	var otherURNs []string
+	for _, event := range events {
+		if readPoint, ok := event["readPoint"].(map[string]interface{}); ok {
+			if id, ok := readPoint["id"].(string); ok && strings.Contains(id, "sgln") && !seen[id] {
+				otherURNs = append(otherURNs, id)
+				seen[id] = true
+			}
+		}
+		if bizLoc, ok := event["bizLocation"].(map[string]interface{}); ok {
+			if id, ok := bizLoc["id"].(string); ok && strings.Contains(id, "sgln") && !seen[id] {
+				otherURNs = append(otherURNs, id)
+				seen[id] = true
+			}
+		}
+	}
+	// Sort other URNs for deterministic output
+	sort.Strings(otherURNs)
+	orderedLocationURNs = append(orderedLocationURNs, otherURNs...)
 
 	// Extract unique product URNs (strip serial numbers)
 	productURNs := make(map[string]bool)
@@ -453,13 +485,13 @@ func extractMasterDataFromEvents(ctx context.Context, cms *DirectusClient, event
 	}
 
 	logger.Info("Querying master data",
-		zap.Int("location_urns", len(locationURNs)),
+		zap.Int("location_urns", len(orderedLocationURNs)),
 		zap.Int("product_urns", len(productURNs)),
 	)
 
-	// Query locations from Directus
+	// Query locations from Directus (preserving order)
 	var locations []LocationMasterData
-	for urn := range locationURNs {
+	for _, urn := range orderedLocationURNs {
 		gln := parseGLNFromSGLNURN(urn)
 		if gln == "" {
 			continue
@@ -506,9 +538,16 @@ func extractMasterDataFromEvents(ctx context.Context, cms *DirectusClient, event
 		}
 	}
 
-	// Query products from Directus
-	var products []ProductMasterData
+	// Sort product URNs for deterministic output
+	var sortedProductURNs []string
 	for urn := range productURNs {
+		sortedProductURNs = append(sortedProductURNs, urn)
+	}
+	sort.Strings(sortedProductURNs)
+
+	// Query products from Directus (in sorted order)
+	var products []ProductMasterData
+	for _, urn := range sortedProductURNs {
 		filter := map[string]interface{}{
 			"urn": map[string]interface{}{"_eq": urn},
 		}

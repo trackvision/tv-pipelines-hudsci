@@ -27,15 +27,10 @@ func TestBuildEPCISJSONDocument(t *testing.T) {
 	doc := buildEPCISJSONDocument(events)
 
 	assert.NotNil(t, doc)
-	assert.Equal(t, "EPCISDocument", doc["type"])
-	assert.Equal(t, "2.0", doc["schemaVersion"])
-
-	epcisBody, ok := doc["epcisBody"].(map[string]interface{})
-	assert.True(t, ok)
-
-	eventList, ok := epcisBody["eventList"].([]map[string]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, 2, len(eventList))
+	assert.Equal(t, "EPCISDocument", doc.Type)
+	assert.Equal(t, "2.0", doc.SchemaVersion)
+	assert.Equal(t, "https://ref.gs1.org/standards/epcis/2.0.0/epcis-context.jsonld", doc.Context)
+	assert.Equal(t, 2, len(doc.EPCISBody.EventList))
 }
 
 func TestBuildEPCISJSONDocumentFiltersReceivingEvents(t *testing.T) {
@@ -62,14 +57,11 @@ func TestBuildEPCISJSONDocumentFiltersReceivingEvents(t *testing.T) {
 
 	doc := buildEPCISJSONDocument(events)
 
-	epcisBody := doc["epcisBody"].(map[string]interface{})
-	eventList := epcisBody["eventList"].([]map[string]interface{})
-
 	// Only 2 events should remain (commissioning and shipping)
-	assert.Equal(t, 2, len(eventList))
+	assert.Equal(t, 2, len(doc.EPCISBody.EventList))
 
 	// Verify receiving event was filtered out
-	for _, event := range eventList {
+	for _, event := range doc.EPCISBody.EventList {
 		assert.NotEqual(t, "receiving", event["bizStep"])
 	}
 }

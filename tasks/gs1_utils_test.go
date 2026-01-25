@@ -398,3 +398,52 @@ func TestNormalizeToLength(t *testing.T) {
 		})
 	}
 }
+
+func TestParseSSCCFromURNNoCheckDigit(t *testing.T) {
+	tests := []struct {
+		name     string
+		ssccURN  string
+		expected string
+	}{
+		{
+			name:     "URN format - returns 17 digits without check digit",
+			ssccURN:  "urn:epc:id:sscc:030001.1234567890",
+			expected: "00300011234567890", // 17 digits, NO check digit
+		},
+		{
+			name:     "URN format with padding",
+			ssccURN:  "urn:epc:id:sscc:0614141.1234567890",
+			expected: "06141411234567890", // 17 digits, NO check digit
+		},
+		{
+			name:     "Digital Link format - strips check digit",
+			ssccURN:  "https://id.gs1.org/00/403000112345678901",
+			expected: "40300011234567890", // First 17 digits (stripped check digit)
+		},
+		{
+			name:     "Empty string",
+			ssccURN:  "",
+			expected: "",
+		},
+		{
+			name:     "Invalid format",
+			ssccURN:  "not-a-valid-urn",
+			expected: "",
+		},
+		{
+			// Real SSCC from DSCSAExample.xml: urn:epc:id:sscc:030001.41234567890
+			name:     "DSCSAExample SSCC",
+			ssccURN:  "urn:epc:id:sscc:030001.41234567890",
+			expected: "03000141234567890", // 17 digits
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ParseSSCCFromURNNoCheckDigit(tt.ssccURN)
+			if result != tt.expected {
+				t.Errorf("ParseSSCCFromURNNoCheckDigit(%q) = %q, want %q", tt.ssccURN, result, tt.expected)
+			}
+		})
+	}
+}

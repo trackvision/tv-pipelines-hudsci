@@ -278,3 +278,56 @@ func normalizeToLength(s string, length int) string {
 	}
 	return s
 }
+
+// ParseSSCCFromURNNoCheckDigit extracts the 17-digit SSCC from an SSCC URN WITHOUT adding a check digit.
+// This matches Mage behavior which returns raw 17-digit SSCCs.
+// Input formats supported:
+//   - urn:epc:id:sscc:CompanyPrefix.SerialRef
+//   - https://id.gs1.org/00/SSCC18 (returns first 17 digits, stripping check digit)
+//
+// Returns the 17-digit SSCC WITHOUT check digit.
+func ParseSSCCFromURNNoCheckDigit(ssccURN string) string {
+	if ssccURN == "" {
+		return ""
+	}
+
+	// Handle URN format: urn:epc:id:sscc:030001.1234567890
+	if parts, found := strings.CutPrefix(ssccURN, "urn:epc:id:sscc:"); found {
+		segments := strings.Split(parts, ".")
+		if len(segments) < 2 {
+			return ""
+		}
+
+		// SSCC = extension digit + company prefix + serial reference
+		// Total: 17 digits (no check digit added to match Mage)
+		sscc17 := segments[0] + segments[1]
+
+		// Ensure exactly 17 digits
+		sscc17 = normalizeToLength(sscc17, 17)
+
+		// Return WITHOUT check digit (matching Mage behavior)
+		return sscc17
+	}
+
+	// Handle Digital Link format: https://id.gs1.org/00/403000112345678901
+	// Digital Link has 18 digits (with check digit), so return first 17
+	if strings.Contains(ssccURN, "/00/") {
+		parts := strings.Split(ssccURN, "/00/")
+		if len(parts) > 1 {
+			sscc := parts[1]
+			// Remove any trailing path elements
+			if idx := strings.Index(sscc, "/"); idx > 0 {
+				sscc = sscc[:idx]
+			}
+			// Digital Link has check digit (18 digits), return first 17 to match Mage
+			if len(sscc) >= 18 {
+				return sscc[:17]
+			}
+			if len(sscc) == 17 {
+				return sscc
+			}
+		}
+	}
+
+	return ""
+}
