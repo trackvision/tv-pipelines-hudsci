@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with the HudSci Pipeline
 
 ## Project Overview
 
-**tv-pipelines-hudsci** is a Go-based pipeline service for pharmaceutical supply chain tracking via EPCIS data. It replaces the Mage AI pipelines from `tv-mage/hudsci` with a production-ready, containerized Go service.
+**tv-pipelines-hudsci** is a Go-based pipeline service for pharmaceutical supply chain tracking via EPCIS data. It provides production-ready, containerized pipelines for HudSci.
 
 ### Pipelines
 
@@ -437,17 +437,6 @@ func checkFailureThreshold(total, failed int) error {
     return nil
 }
 ```
-
-## Migration from Mage
-
-This project replaces `tv-mage/hudsci`:
-
-| Mage Pipeline | Go Pipeline |
-|---------------|-------------|
-| `inbound_shipment_received` | `pipelines/inbound` |
-| `outbound_shipment_dispatch` | `pipelines/outbound` |
-
-See `MIGRATION_PLAN.md` for detailed block-by-block mapping.
 
 ## Before Making Changes
 

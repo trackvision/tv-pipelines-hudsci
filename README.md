@@ -55,8 +55,7 @@ tv-pipelines-hudsci/
 ├── .env.example                     # Environment template
 ├── Dockerfile                       # Multi-stage build with health check
 ├── Makefile                         # Build & test commands
-├── CLAUDE.md                        # Claude Code guidance
-└── MIGRATION_PLAN.md                # Migration from Mage documentation
+└── CLAUDE.md                        # Claude Code guidance
 ```
 
 ## Getting Started
@@ -320,15 +319,6 @@ For secret management in Cloud Run:
 - Secrets are mounted as files in `/etc/creds/`
 - Use `USE_PROD_CERTS=true` to enable production TrustMed certificates
 - Set `TRUSTMED_CERTFILE_PROD`, `TRUSTMED_KEYFILE_PROD`, `TRUSTMED_CAFILE_PROD` to `/etc/creds/trustmed/*`
-
-## Migration from Mage
-
-This project replaces the Mage AI pipelines in `tv-mage/hudsci`:
-
-- `inbound_shipment_received` → `pipelines/inbound`
-- `outbound_shipment_dispatch` → `pipelines/outbound`
-
-See `MIGRATION_PLAN.md` for detailed mapping.
 
 ## Contributing
 
