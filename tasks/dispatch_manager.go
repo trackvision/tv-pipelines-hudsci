@@ -66,9 +66,10 @@ func ManageDispatchRecords(ctx context.Context, cms *DirectusClient, cfg *config
 		if len(doc.EPCISJSONContent) > 0 {
 			jsonFilename := fmt.Sprintf("%s.json", doc.CaptureID)
 			result, err := cms.UploadFile(ctx, UploadFileParams{
-				Filename: jsonFilename,
-				Content:  doc.EPCISJSONContent,
-				FolderID: cfg.FolderOutputJSON,
+				Filename:    jsonFilename,
+				Content:     doc.EPCISJSONContent,
+				FolderID:    cfg.FolderOutputJSON,
+				ContentType: "application/json",
 			})
 			if err != nil {
 				logger.Error("Failed to upload JSON file",
@@ -85,9 +86,10 @@ func ManageDispatchRecords(ctx context.Context, cms *DirectusClient, cfg *config
 		// Upload enhanced EPCIS XML file
 		xmlFilename := fmt.Sprintf("%s.xml", doc.CaptureID)
 		result, err := cms.UploadFile(ctx, UploadFileParams{
-			Filename: xmlFilename,
-			Content:  doc.EnhancedXML,
-			FolderID: cfg.FolderOutputXML,
+			Filename:    xmlFilename,
+			Content:     doc.EnhancedXML,
+			FolderID:    cfg.FolderOutputXML,
+			ContentType: "application/xml",
 		})
 		if err != nil {
 			logger.Error("Failed to upload XML file",

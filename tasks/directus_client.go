@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"time"
 
 	"github.com/trackvision/tv-shared-go/logger"
@@ -253,8 +254,15 @@ func (d *DirectusClient) UploadFile(ctx context.Context, params UploadFileParams
 		}
 	}
 
-	// Add file
-	part, err := writer.CreateFormFile("file", params.Filename)
+	// Add file with proper content type
+	contentType := params.ContentType
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, params.Filename))
+	header.Set("Content-Type", contentType)
+	part, err := writer.CreatePart(header)
 	if err != nil {
 		return nil, fmt.Errorf("creating form file: %w", err)
 	}
