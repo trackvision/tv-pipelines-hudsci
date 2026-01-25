@@ -232,9 +232,10 @@ func enhanceEPCISXML(baseXML []byte, senderURN, receiverURN string, locations []
 		return nil, fmt.Errorf("no root element in XML")
 	}
 
-	// Add namespace declarations for SBDH and DSCSA elements
+	// Add namespace declarations for SBDH, DSCSA, and cbvmda elements (matching Mage)
 	root.CreateAttr("xmlns:sbdh", "http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader")
 	root.CreateAttr("xmlns:gs1ushc", "http://epcis.gs1us.org/hc/ns")
+	root.CreateAttr("xmlns:cbvmda", "urn:epcglobal:cbv:mda")
 
 	// Create EPCISHeader as first child
 	header := root.CreateElement("EPCISHeader")
@@ -292,7 +293,8 @@ func addSBDH(header *etree.Element, senderURN, receiverURN string) {
 	docID.CreateElement("sbdh:TypeVersion").SetText("1.0")
 	docID.CreateElement("sbdh:InstanceIdentifier").SetText(uuid.New().String())
 	docID.CreateElement("sbdh:Type").SetText("Events")
-	docID.CreateElement("sbdh:CreationDateAndTime").SetText(time.Now().UTC().Format(time.RFC3339))
+	// Use microsecond precision with +00:00 timezone (matching Mage format)
+	docID.CreateElement("sbdh:CreationDateAndTime").SetText(time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00"))
 }
 
 func addDSCSA(header *etree.Element) {
@@ -374,11 +376,6 @@ func addProductVocabulary(vocabList *etree.Element, products []ProductMasterData
 			attr.CreateAttr("id", "urn:epcglobal:cbv:mda#manufacturerOfTradeItemPartyName")
 			attr.SetText(prod.Manufacturer)
 		}
-		if prod.NetContentDescription != "" {
-			attr := elem.CreateElement("attribute")
-			attr.CreateAttr("id", "urn:epcglobal:cbv:mda#netContentDescription")
-			attr.SetText(prod.NetContentDescription)
-		}
 		if prod.DosageFormType != "" {
 			attr := elem.CreateElement("attribute")
 			attr.CreateAttr("id", "urn:epcglobal:cbv:mda#dosageFormType")
@@ -388,6 +385,11 @@ func addProductVocabulary(vocabList *etree.Element, products []ProductMasterData
 			attr := elem.CreateElement("attribute")
 			attr.CreateAttr("id", "urn:epcglobal:cbv:mda#strengthDescription")
 			attr.SetText(prod.StrengthDescription)
+		}
+		if prod.NetContentDescription != "" {
+			attr := elem.CreateElement("attribute")
+			attr.CreateAttr("id", "urn:epcglobal:cbv:mda#netContentDescription")
+			attr.SetText(prod.NetContentDescription)
 		}
 	}
 }
