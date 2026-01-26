@@ -2,6 +2,45 @@
 
 This file provides guidance to Claude Code when working with the HudSci Pipelines project.
 
+## ⚠️ CRITICAL: Environment Selection
+
+When running pipelines on GCP Cloud Run:
+
+| Environment | Project ID | Action |
+|-------------|------------|--------|
+| **hudscidev** | hudscidev-100 | **DEFAULT** - Use this for all testing |
+| **hudsci** | hudsci-118 | **PRODUCTION** - ASK PERMISSION FIRST |
+
+**Rules:**
+1. **ALWAYS default to hudscidev** when running pipelines remotely
+2. If user says "run on hudsci" (without "dev"), **ASK FOR CONFIRMATION** before proceeding
+3. Local development uses `.env` file - no confirmation needed
+
+**Pipeline URLs:**
+| Environment | URL |
+|-------------|-----|
+| hudscidev (default) | `https://pipelines.hudscidev.trackvision.ai` |
+| hudsci (PRODUCTION) | `https://pipelines.hudsci.trackvision.ai` |
+
+```bash
+# Run inbound pipeline on hudscidev (default)
+curl -X POST "https://pipelines.hudscidev.trackvision.ai/run/inbound" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-run"}'
+
+# Run with skip_steps (e.g., skip TrustMed polling)
+curl -X POST "https://pipelines.hudscidev.trackvision.ai/run/inbound" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-run", "skip_steps": ["poll_trustmed_files"]}'
+
+# Test only TrustMed auth (skip all other steps)
+curl -X POST "https://pipelines.hudscidev.trackvision.ai/run/inbound" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-auth", "skip_steps": ["extract_shipment_data", "convert_xml_to_json", "insert_epcis_inbox", "upload_json_files"]}'
+```
+
+---
+
 ## Project Overview
 
 **tv-pipelines-hudsci** is a Go-based pipeline service for pharmaceutical supply chain tracking via EPCIS data. It provides production-ready, containerized pipelines for HudSci.
@@ -9,11 +48,12 @@ This file provides guidance to Claude Code when working with the HudSci Pipeline
 ### Pipelines
 
 1. **Inbound Pipeline** (`pipelines/inbound/pipeline.go`)
-   - Poll XML files from Directus
-   - Convert XML to JSON via EPCIS Converter service
+   - Poll XML files from TrustMed Dashboard API (files sent TO us)
+   - Uses watermark to track last poll timestamp for incremental processing
    - Extract shipping data (events, products, containers)
-   - Insert to `epcis_inbox` collection
-   - Update watermark for incremental processing
+   - Convert XML to JSON via EPCIS Converter service
+   - Insert to `epcis_inbox` collection in Directus
+   - Upload JSON files to Directus
 
 2. **Outbound Pipeline** (`pipelines/outbound/pipeline.go`)
    - Query approved shipments from Directus
@@ -88,9 +128,9 @@ func Load() (*Config, error) {
 
 ```
 tv-pipelines-hudsci/
-├── main.go                    # HTTP server, pipeline registry
+├── main.go                    # HTTP server, pipeline registry, skip_steps support
 ├── pipelines/
-│   ├── flow.go                # Task orchestration with logging
+│   ├── flow.go                # Task orchestration with logging & skip support
 │   ├── inbound/pipeline.go    # Inbound shipments pipeline
 │   └── outbound/pipeline.go   # Outbound shipments pipeline
 ├── tasks/
@@ -101,9 +141,15 @@ tv-pipelines-hudsci/
 │   ├── epcis_extractor.go     # Extract shipping data from XML
 │   ├── epcis_builder.go       # Build EPCIS 2.0 JSON-LD documents
 │   ├── epcis_enhancer.go      # Add SBDH, DSCSA, VocabularyList
-│   ├── trustmed_client.go     # TrustMed Partner API (mTLS)
-│   ├── trustmed_dashboard.go  # TrustMed Dashboard API
+│   ├── trustmed_client.go     # TrustMed Partner API (mTLS dispatch)
+│   ├── trustmed_dashboard.go  # TrustMed Dashboard API (auth, status)
+│   ├── trustmed_poll_files.go # Poll received files from TrustMed
+│   ├── dispatch_manager.go    # Outbound dispatch orchestration
+│   ├── dispatch_execution.go  # Execute dispatches with retry
+│   ├── outbound_shipments.go  # Query approved shipments
 │   ├── tidb_queries.go        # TiDB CTE queries for events
+│   ├── gcp_logging.go         # Cloud Logging integration
+│   ├── gs1_utils.go           # GS1/EPCIS utilities
 │   └── *_test.go              # Unit tests for each task
 ├── types/
 │   └── types.go               # Shared type definitions
@@ -114,11 +160,16 @@ tv-pipelines-hudsci/
 │   ├── e2e_inbound_test.go    # E2E test for inbound pipeline
 │   ├── e2e_outbound_test.go   # E2E test for outbound pipeline
 │   └── fixtures/              # Test data files
-│       └── DSCSAExample.xml
 ├── scripts/
 │   ├── reset_inbound.go       # Reset inbound pipeline state
 │   ├── upload_test_file.go    # Upload test XML to Directus
-│   └── verify_inbound.go      # Verify inbound pipeline results
+│   ├── verify_inbound.go      # Verify inbound pipeline results
+│   ├── diagnose_logs.go       # Diagnose GCP logs
+│   └── test_xml_generation.go # Test XML generation
+├── templates/                 # HTML templates for UI
+│   ├── index.html
+│   ├── job.html
+│   └── logs.html
 ├── .env.example               # Environment template
 ├── Dockerfile                 # Multi-stage build with health check
 ├── Makefile                   # Build & test commands
@@ -273,15 +324,31 @@ make lint           # Run golangci-lint
 # Health check
 curl http://localhost:8080/health
 
+# List available pipelines
+curl http://localhost:8080/jobs
+
+# Get pipeline info (steps)
+curl http://localhost:8080/jobs/inbound
+
 # Run inbound pipeline
 curl -X POST http://localhost:8080/run/inbound \
   -H "Content-Type: application/json" \
   -d '{"id": "test-run"}'
 
+# Run inbound pipeline with skip_steps (skip TrustMed polling)
+curl -X POST http://localhost:8080/run/inbound \
+  -H "Content-Type: application/json" \
+  -d '{"id": "test-run", "skip_steps": ["poll_trustmed_files"]}'
+
 # Run outbound pipeline
 curl -X POST http://localhost:8080/run/outbound \
   -H "Content-Type: application/json" \
   -d '{"id": "test-run"}'
+
+# Query logs (requires GCP_PROJECT_ID and CLOUD_RUN_SERVICE)
+curl "http://localhost:8080/logs?pipeline=inbound&since=1h&limit=50"
+
+# UI available at /ui/
 ```
 
 ## TrustMed mTLS Certificate Handling
