@@ -36,7 +36,7 @@ func Run(ctx context.Context, db *sqlx.DB, cms *tasks.DirectusClient, cfg *confi
 	var dispatchRecords []tasks.DispatchRecordWithFiles
 	var dispatchResults []tasks.DispatchResult
 
-	flow := pipelines.NewFlow("outbound-shipments")
+	flow := pipelines.NewFlow("outbound")
 
 	// Task 1: Poll approved shipments from Directus
 	flow.AddTask("poll_approved_shipments", func() error {
