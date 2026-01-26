@@ -266,8 +266,21 @@ func enhanceEPCISXML(baseXML []byte, senderURN, receiverURN string, locations []
 	// Add DSCSA transaction statement (last)
 	addDSCSA(header)
 
+	// Strip redundant namespace declarations from ILMD elements
+	stripRedundantILMDNamespaces(root)
+
 	doc.Indent(2)
 	return doc.WriteToBytes()
+}
+
+// stripRedundantILMDNamespaces removes xmlns:cbvmda from ilmd child elements
+// since it's already declared at the document root
+func stripRedundantILMDNamespaces(root *etree.Element) {
+	for _, ilmd := range root.FindElements("//ilmd") {
+		for _, child := range ilmd.ChildElements() {
+			child.RemoveAttr("xmlns:cbvmda")
+		}
+	}
 }
 
 // Helper functions for XML building (simplified versions)
@@ -280,12 +293,12 @@ func addSBDH(header *etree.Element, senderURN, receiverURN string) {
 
 	sender := sbdh.CreateElement("sbdh:Sender")
 	senderID := sender.CreateElement("sbdh:Identifier")
-	senderID.CreateAttr("Authority", "SGLN")
+	senderID.CreateAttr("Authority", "GS1")
 	senderID.SetText(senderURN)
 
 	receiver := sbdh.CreateElement("sbdh:Receiver")
 	receiverID := receiver.CreateElement("sbdh:Identifier")
-	receiverID.CreateAttr("Authority", "SGLN")
+	receiverID.CreateAttr("Authority", "GS1")
 	receiverID.SetText(receiverURN)
 
 	docID := sbdh.CreateElement("sbdh:DocumentIdentification")
@@ -556,6 +569,7 @@ func extractMasterDataFromEvents(ctx context.Context, cms *DirectusClient, event
 		items, err := cms.QueryItems(ctx, "product", filter, []string{
 			"gtin", "urn", "product_name", "ndc",
 			"product_manufacturer.organisation_name",
+			"brand.brand_name",
 			"net_content_description", "dosage_form_type", "strength_description",
 		}, 1)
 		if err != nil || len(items) == 0 {
@@ -565,8 +579,15 @@ func extractMasterDataFromEvents(ctx context.Context, cms *DirectusClient, event
 
 		item := items[0]
 		manufacturer := ""
-		if mfg, ok := item["product_manufacturer"].(map[string]interface{}); ok {
-			manufacturer = getStringField(mfg, "organisation_name")
+		// Priority: brand.brand_name first
+		if brand, ok := item["brand"].(map[string]interface{}); ok {
+			manufacturer = getStringField(brand, "brand_name")
+		}
+		// Fallback: product_manufacturer.organisation_name
+		if manufacturer == "" {
+			if mfg, ok := item["product_manufacturer"].(map[string]interface{}); ok {
+				manufacturer = getStringField(mfg, "organisation_name")
+			}
 		}
 
 		products = append(products, ProductMasterData{
