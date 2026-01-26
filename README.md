@@ -2,7 +2,7 @@
 
 Go-based pipeline service for HudSci EPCIS data processing. This project implements two core pipelines for pharmaceutical supply chain tracking:
 
-1. **Inbound Pipeline** - Poll XML files from Directus, convert to JSON, extract shipping data, insert to database
+1. **Inbound Pipeline** - Poll XML files from TrustMed Dashboard, convert to JSON, extract shipping data, insert to database
 2. **Outbound Pipeline** - Query approved shipments, build EPCIS documents, dispatch via TrustMed mTLS
 
 ## Architecture
@@ -32,9 +32,14 @@ tv-pipelines-hudsci/
 │   ├── epcis_builder.go             # Build EPCIS 2.0 JSON-LD documents
 │   ├── epcis_enhancer.go            # Add SBDH, DSCSA, VocabularyList
 │   ├── trustmed_client.go           # TrustMed Partner API (mTLS dispatch)
-│   ├── trustmed_dashboard.go        # TrustMed Dashboard API (confirmation)
+│   ├── trustmed_dashboard.go        # TrustMed Dashboard API (auth, status)
+│   ├── trustmed_poll_files.go       # Poll received files from TrustMed
+│   ├── dispatch_manager.go          # Outbound dispatch orchestration
+│   ├── dispatch_execution.go        # Execute dispatches with retry
 │   ├── tidb_queries.go              # TiDB CTE queries for events
-│   ├── outbound_shipments.go        # Outbound pipeline helpers
+│   ├── outbound_shipments.go        # Query approved shipments
+│   ├── gcp_logging.go               # Cloud Logging integration
+│   ├── gs1_utils.go                 # GS1/EPCIS utilities
 │   └── *_test.go                    # Unit tests for each task
 ├── types/
 │   └── types.go                     # Shared type definitions
@@ -50,7 +55,9 @@ tv-pipelines-hudsci/
 ├── scripts/
 │   ├── reset_inbound.go             # Reset inbound pipeline state
 │   ├── upload_test_file.go          # Upload test XML to Directus
-│   └── verify_inbound.go            # Verify inbound pipeline results
+│   ├── verify_inbound.go            # Verify inbound pipeline results
+│   ├── diagnose_logs.go             # Diagnose GCP logs
+│   └── test_xml_generation.go       # Test XML generation
 ├── vendor/                          # Vendored dependencies
 ├── .env.example                     # Environment template
 ├── Dockerfile                       # Multi-stage build with health check
@@ -494,6 +501,12 @@ go run scripts/upload_test_file.go
 
 # Verify inbound pipeline results
 go run scripts/verify_inbound.go
+
+# Diagnose GCP logs for troubleshooting
+go run scripts/diagnose_logs.go
+
+# Test XML generation
+go run scripts/test_xml_generation.go
 ```
 
 ### Code Quality
@@ -508,14 +521,13 @@ make check   # Runs go vet, golangci-lint, and unit tests
 
 ### Inbound Pipeline
 
-Processes incoming EPCIS XML files:
+Processes incoming EPCIS XML files from TrustMed:
 
-1. **poll_xml_files** - Query Directus for new XML files (watermark-based)
-2. **convert_xml_to_json** - Convert XML to JSON via EPCIS Converter service
-3. **upload_json_files** - Upload JSON to Directus
-4. **extract_shipment_data** - Extract shipping events, products, containers
-5. **insert_epcis_inbox** - Insert to `epcis_inbox` collection
-6. **update_watermark** - Update processing watermark
+1. **poll_trustmed_files** - Poll TrustMed Dashboard API for received files (includes watermark update)
+2. **extract_shipment_data** - Extract shipping events, products, containers
+3. **convert_xml_to_json** - Convert XML to JSON via EPCIS Converter service
+4. **insert_epcis_inbox** - Insert to `epcis_inbox` collection in Directus
+5. **upload_json_files** - Upload JSON files to Directus
 
 ### Outbound Pipeline
 
