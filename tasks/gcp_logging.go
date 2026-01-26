@@ -273,6 +273,10 @@ func GroupByRun(entries []LogEntry, projectID, serviceName string) []PipelineRun
 			currentRun.EndTime = entry.Timestamp
 		} else if entry.Message == "pipeline complete" {
 			currentRun.EndTime = entry.Timestamp
+		} else if entry.Message == "Pipeline failed" {
+			currentRun.Success = false
+			currentRun.Error = entry.Error
+			currentRun.EndTime = entry.Timestamp
 		}
 	}
 
