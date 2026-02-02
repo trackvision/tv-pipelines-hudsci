@@ -168,10 +168,12 @@ func TestTrustMedDashboardClient_GetFileStatus(t *testing.T) {
 				Next:  nil,
 				Results: []FileRecord{
 					{
-						LogGuid:    "target-log-uuid",
-						StatusMsg:  "Acknowledged",
-						StatusCode: 200,
+						LogGuid:    "dashboard-log-uuid",
+						StatusMsg:  "Complete",
+						StatusCode: 0,
+						Status:     4,
 						IsSender:   true,
+						SourceFile: "target-log-uuid/api-xml/2026-02-02.xml", // Partner UUID is in source_file path
 					},
 				},
 			}
@@ -198,12 +200,16 @@ func TestTrustMedDashboardClient_GetFileStatus(t *testing.T) {
 		t.Fatalf("GetFileStatus failed: %v", err)
 	}
 
-	if record.LogGuid != "target-log-uuid" {
-		t.Errorf("Expected log UUID 'target-log-uuid', got '%s'", record.LogGuid)
+	if record.LogGuid != "dashboard-log-uuid" {
+		t.Errorf("Expected dashboard log UUID 'dashboard-log-uuid', got '%s'", record.LogGuid)
 	}
 
-	if record.StatusMsg != "Acknowledged" {
-		t.Errorf("Expected status 'Acknowledged', got '%s'", record.StatusMsg)
+	if record.StatusMsg != "Complete" {
+		t.Errorf("Expected status 'Complete', got '%s'", record.StatusMsg)
+	}
+
+	if !strings.HasPrefix(record.SourceFile, "target-log-uuid/") {
+		t.Errorf("Expected source_file to start with 'target-log-uuid/', got '%s'", record.SourceFile)
 	}
 }
 
@@ -279,10 +285,12 @@ func TestTrustMedDashboardClient_PollDispatchConfirmation(t *testing.T) {
 				Next:  nil,
 				Results: []FileRecord{
 					{
-						LogGuid:    "test-log-uuid",
-						StatusMsg:  "Acknowledged",
-						StatusCode: 200,
+						LogGuid:    "dashboard-log-uuid",
+						StatusMsg:  "Complete",
+						StatusCode: 0,
+						Status:     4, // 4 = Complete in TrustMed Dashboard
 						IsSender:   true,
+						SourceFile: "test-partner-uuid/api-xml/2026-02-02.xml",
 					},
 				},
 			}
@@ -304,13 +312,14 @@ func TestTrustMedDashboardClient_PollDispatchConfirmation(t *testing.T) {
 
 	ctx := context.Background()
 
-	status, err := client.PollDispatchConfirmation(ctx, "test-log-uuid")
+	// Use the Partner UUID (which appears in source_file), not the dashboard logGuid
+	status, err := client.PollDispatchConfirmation(ctx, "test-partner-uuid")
 	if err != nil {
 		t.Fatalf("PollDispatchConfirmation failed: %v", err)
 	}
 
-	if status.Status != "Acknowledged" {
-		t.Errorf("Expected status 'Acknowledged', got '%s'", status.Status)
+	if status.Status != "confirmed" {
+		t.Errorf("Expected status 'confirmed', got '%s'", status.Status)
 	}
 
 	if !status.IsDelivered {
@@ -323,51 +332,69 @@ func TestTrustMedDashboardClient_PollDispatchConfirmation(t *testing.T) {
 }
 
 func TestMapTrustMedStatus(t *testing.T) {
+	// Tests use the numeric status field from Dashboard API
+	// status=4 means Complete (delivered successfully)
 	tests := []struct {
 		name          string
-		statusCode    int
-		statusMsg     string
+		status        int    // Numeric status from Dashboard API
+		statusMsg     string // String status message
 		expectedState string
 		isDelivered   bool
 		isPermanent   bool
 	}{
 		{
-			name:          "Acknowledged",
-			statusCode:    200,
-			statusMsg:     "Acknowledged",
-			expectedState: "Acknowledged",
+			name:          "Complete (status=4)",
+			status:        4,
+			statusMsg:     "Complete",
+			expectedState: "confirmed",
+			isDelivered:   true,
+			isPermanent:   true,
+		},
+		{
+			name:          "Complete by message",
+			status:        0,
+			statusMsg:     "Complete",
+			expectedState: "confirmed",
 			isDelivered:   true,
 			isPermanent:   true,
 		},
 		{
 			name:          "Processing",
-			statusCode:    200,
+			status:        0,
 			statusMsg:     "Processing",
-			expectedState: "Processing",
+			expectedState: "pending",
 			isDelivered:   false,
 			isPermanent:   false,
 		},
 		{
-			name:          "4xx error (permanent failure)",
-			statusCode:    400,
-			statusMsg:     "Bad Request",
-			expectedState: "Failed",
+			name:          "Pending",
+			status:        0,
+			statusMsg:     "Pending",
+			expectedState: "pending",
+			isDelivered:   false,
+			isPermanent:   false,
+		},
+		{
+			name:          "Failed",
+			status:        0,
+			statusMsg:     "Failed",
+			expectedState: "failed",
 			isDelivered:   false,
 			isPermanent:   true,
 		},
 		{
-			name:          "5xx error (temporary failure)",
-			statusCode:    500,
-			statusMsg:     "Internal Server Error",
-			expectedState: "Retrying",
+			name:          "Error",
+			status:        0,
+			statusMsg:     "Error processing file",
+			expectedState: "failed",
 			isDelivered:   false,
-			isPermanent:   false,
+			isPermanent:   true,
 		},
 		{
 			name:          "Unknown status",
-			statusCode:    300,
-			statusMsg:     "Redirect",
-			expectedState: "Processing",
+			status:        0,
+			statusMsg:     "Unknown",
+			expectedState: "pending",
 			isDelivered:   false,
 			isPermanent:   false,
 		},
@@ -375,26 +402,26 @@ func TestMapTrustMedStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status := mapTrustMedStatus(tt.statusCode, tt.statusMsg)
+			result := mapTrustMedStatus(tt.status, tt.statusMsg)
 
-			if status.Status != tt.expectedState {
-				t.Errorf("Expected status '%s', got '%s'", tt.expectedState, status.Status)
+			if result.Status != tt.expectedState {
+				t.Errorf("Expected status '%s', got '%s'", tt.expectedState, result.Status)
 			}
 
-			if status.IsDelivered != tt.isDelivered {
-				t.Errorf("Expected IsDelivered %v, got %v", tt.isDelivered, status.IsDelivered)
+			if result.IsDelivered != tt.isDelivered {
+				t.Errorf("Expected IsDelivered %v, got %v", tt.isDelivered, result.IsDelivered)
 			}
 
-			if status.IsPermanent != tt.isPermanent {
-				t.Errorf("Expected IsPermanent %v, got %v", tt.isPermanent, status.IsPermanent)
+			if result.IsPermanent != tt.isPermanent {
+				t.Errorf("Expected IsPermanent %v, got %v", tt.isPermanent, result.IsPermanent)
 			}
 
-			if status.StatusCode != tt.statusCode {
-				t.Errorf("Expected StatusCode %d, got %d", tt.statusCode, status.StatusCode)
+			if result.StatusCode != tt.status {
+				t.Errorf("Expected StatusCode %d, got %d", tt.status, result.StatusCode)
 			}
 
-			if status.StatusMsg != tt.statusMsg {
-				t.Errorf("Expected StatusMsg '%s', got '%s'", tt.statusMsg, status.StatusMsg)
+			if result.StatusMsg != tt.statusMsg {
+				t.Errorf("Expected StatusMsg '%s', got '%s'", tt.statusMsg, result.StatusMsg)
 			}
 		})
 	}

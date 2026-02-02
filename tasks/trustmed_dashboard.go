@@ -48,6 +48,8 @@ type FileRecord struct {
 	IsSender     bool      `json:"is_sender"`
 	DateCreated  time.Time `json:"date_created"`
 	DateModified time.Time `json:"date_modified"`
+	SourceFile   string    `json:"source_file"` // Contains Partner API UUID in path: {uuid}/api-xml/{date}.xml
+	Status       int       `json:"status"`      // Numeric status (4 = Complete)
 }
 
 // DispatchStatus represents the mapped dispatch confirmation status
@@ -215,10 +217,12 @@ func (c *TrustMedDashboardClient) SearchFiles(ctx context.Context, startDate, en
 	return &searchResp, nil
 }
 
-// GetFileStatus gets the status of a specific file by log UUID
-func (c *TrustMedDashboardClient) GetFileStatus(ctx context.Context, logUUID string) (*FileRecord, error) {
+// GetFileStatus gets the status of a specific file by Partner API UUID
+// The Partner API UUID appears in the source_file path: {uuid}/api-xml/{date}.xml
+// The Dashboard logGuid is different from the Partner API UUID
+func (c *TrustMedDashboardClient) GetFileStatus(ctx context.Context, partnerUUID string) (*FileRecord, error) {
 	logger.Info("Getting file status from TrustMed Dashboard",
-		zap.String("log_uuid", logUUID),
+		zap.String("partner_uuid", partnerUUID),
 	)
 
 	// Search in a wide date range (last 90 days)
@@ -233,11 +237,14 @@ func (c *TrustMedDashboardClient) GetFileStatus(ctx context.Context, logUUID str
 			return nil, err
 		}
 
-		// Look for the specific file
+		// Look for the file by matching Partner UUID in source_file path
+		// source_file format: {partner_uuid}/api-xml/{date}.xml
 		for _, record := range searchResp.Results {
-			if record.LogGuid == logUUID {
+			if strings.HasPrefix(record.SourceFile, partnerUUID+"/") {
 				logger.Info("Found file status",
-					zap.String("log_uuid", logUUID),
+					zap.String("partner_uuid", partnerUUID),
+					zap.String("dashboard_log_guid", record.LogGuid),
+					zap.String("source_file", record.SourceFile),
 					zap.String("status", record.StatusMsg),
 					zap.Int("status_code", record.StatusCode),
 				)
@@ -252,26 +259,29 @@ func (c *TrustMedDashboardClient) GetFileStatus(ctx context.Context, logUUID str
 		page++
 	}
 
-	return nil, fmt.Errorf("file not found with log UUID: %s", logUUID)
+	return nil, fmt.Errorf("file not found with Partner UUID: %s (searched source_file paths)", partnerUUID)
 }
 
 // PollDispatchConfirmation checks delivery status for a dispatched document
 // Returns DispatchStatus with mapped status from TrustMed Dashboard API
-func (c *TrustMedDashboardClient) PollDispatchConfirmation(ctx context.Context, logUUID string) (*DispatchStatus, error) {
+// partnerUUID is the UUID returned by the Partner API (mTLS dispatch)
+func (c *TrustMedDashboardClient) PollDispatchConfirmation(ctx context.Context, partnerUUID string) (*DispatchStatus, error) {
 	logger.Info("Polling dispatch confirmation",
-		zap.String("log_uuid", logUUID),
+		zap.String("partner_uuid", partnerUUID),
 	)
 
-	record, err := c.GetFileStatus(ctx, logUUID)
+	record, err := c.GetFileStatus(ctx, partnerUUID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Map TrustMed status to our status
-	status := mapTrustMedStatus(record.StatusCode, record.StatusMsg)
+	// Note: record.Status is numeric (e.g., 4=Complete), record.StatusMsg is string (e.g., "Complete")
+	status := mapTrustMedStatus(record.Status, record.StatusMsg)
 
 	logger.Info("Dispatch status retrieved",
-		zap.String("log_uuid", logUUID),
+		zap.String("partner_uuid", partnerUUID),
+		zap.String("dashboard_log_guid", record.LogGuid),
 		zap.String("status", status.Status),
 		zap.Bool("is_delivered", status.IsDelivered),
 	)
@@ -279,47 +289,45 @@ func (c *TrustMedDashboardClient) PollDispatchConfirmation(ctx context.Context, 
 	return &status, nil
 }
 
-// mapTrustMedStatus maps TrustMed status codes to our dispatch status
-// Based on the migration plan status mapping
-func mapTrustMedStatus(statusCode int, statusMsg string) DispatchStatus {
-	status := DispatchStatus{
-		StatusCode:  statusCode,
+// mapTrustMedStatus maps TrustMed Dashboard status to our dispatch status
+// status is the numeric status field from the Dashboard API (e.g., 4=Complete)
+// statusMsg is the string representation (e.g., "Complete")
+func mapTrustMedStatus(status int, statusMsg string) DispatchStatus {
+	result := DispatchStatus{
+		StatusCode:  status,
 		StatusMsg:   statusMsg,
 		LastChecked: time.Now(),
 	}
 
-	// Map based on status code and message
+	// Map based on numeric status code from Dashboard API
+	// Known values: 4 = Complete (delivered successfully)
+	// Note: Check error/failed first since "Error processing" contains "processing"
+	msgLower := strings.ToLower(statusMsg)
 	switch {
-	case statusCode == 200 && strings.Contains(strings.ToLower(statusMsg), "acknowledged"):
-		status.Status = "Acknowledged"
-		status.IsDelivered = true
-		status.IsPermanent = true
+	case status == 4 || strings.EqualFold(statusMsg, "Complete"):
+		result.Status = "confirmed"
+		result.IsDelivered = true
+		result.IsPermanent = true
 
-	case statusCode == 200 && strings.Contains(strings.ToLower(statusMsg), "processing"):
-		status.Status = "Processing"
-		status.IsDelivered = false
-		status.IsPermanent = false
+	case strings.Contains(msgLower, "failed") || strings.Contains(msgLower, "error"):
+		// Check error/failed first since "Error processing" contains "processing"
+		result.Status = "failed"
+		result.IsDelivered = false
+		result.IsPermanent = true
 
-	case statusCode >= 400 && statusCode < 500:
-		// 4xx errors are permanent failures (bad request, auth, etc)
-		status.Status = "Failed"
-		status.IsDelivered = false
-		status.IsPermanent = true
-
-	case statusCode >= 500:
-		// 5xx errors are temporary failures (retry eligible)
-		status.Status = "Retrying"
-		status.IsDelivered = false
-		status.IsPermanent = false
+	case strings.Contains(msgLower, "processing") || strings.Contains(msgLower, "pending"):
+		result.Status = "pending"
+		result.IsDelivered = false
+		result.IsPermanent = false
 
 	default:
-		// Unknown status, mark as processing
-		status.Status = "Processing"
-		status.IsDelivered = false
-		status.IsPermanent = false
+		// Unknown status, mark as pending (will be re-polled)
+		result.Status = "pending"
+		result.IsDelivered = false
+		result.IsPermanent = false
 	}
 
-	return status
+	return result
 }
 
 // SearchAllFiles searches for all EPCIS files in the date range, handling pagination
