@@ -91,8 +91,8 @@ func Load() (*Config, error) {
 	trustmedKeyFile := getEnv("TRUSTMED_KEYFILE", "/TRUSTMED_CLIENT_KEY/value")
 	trustmedCAFile := getEnv("TRUSTMED_CAFILE", "/TRUSTMED_CA_CERT/value")
 
-	// API key for auth (optional - if not set, auth is disabled)
-	cmsAPIKey, _ := env.GetSecret("CMS_API_KEY")
+	// API key for auth - reuse DIRECTUS_CMS_API_KEY (already loaded and mounted in Cloud Run)
+	cmsAPIKey := apiKey
 
 	cfg := &Config{
 		// Server
