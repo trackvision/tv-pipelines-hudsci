@@ -244,16 +244,18 @@ func PollDispatchConfirmation(ctx context.Context, cms *DirectusClient, cfg *con
 		}
 
 		// Update dispatch record with confirmation status
-		updates := map[string]interface{}{
-			"trustmed_status":         status.Status,
-			"trustmed_status_msg":     status.StatusMsg,
-			"trustmed_status_updated": status.LastChecked.Format("2006-01-02T15:04:05Z07:00"),
+		patchPayload := map[string]interface{}{
+			"data": map[string]interface{}{
+				"trustmed_status":         status.Status,
+				"trustmed_status_msg":     status.StatusMsg,
+				"trustmed_status_updated": status.LastChecked.Format("2006-01-02T15:04:05Z07:00"),
+			},
 		}
 		if status.IsDelivered {
-			updates["date_confirmed"] = status.LastChecked.Format("2006-01-02T15:04:05Z07:00")
+			patchPayload["data"].(map[string]interface{})["date_confirmed"] = status.LastChecked.Format("2006-01-02T15:04:05Z07:00")
 		}
 
-		err = cms.PatchItem(ctx, "EPCIS_outbound", result.DispatchRecordID, updates)
+		err = cms.PatchItem(ctx, "EPCIS_outbound", result.DispatchRecordID, patchPayload)
 		if err != nil {
 			logger.Error("Failed to update confirmation status",
 				zap.String("dispatch_record_id", result.DispatchRecordID),
