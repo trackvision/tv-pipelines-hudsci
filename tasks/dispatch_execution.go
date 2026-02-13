@@ -208,18 +208,32 @@ func PollDispatchConfirmation(ctx context.Context, cms *DirectusClient, cfg *con
 		logger.Info("Found previously acknowledged records to check", zap.Int("count", len(acknowledgedRecords)))
 	}
 
-	// Combine current results with previous records
+	// Combine current results with previous records, deduplicating by ID
 	allToCheck := sentResults
+	seenIDs := make(map[string]bool)
+	for _, r := range sentResults {
+		seenIDs[r.DispatchRecordID] = true
+	}
 	for _, rec := range acknowledgedRecords {
 		uuid, _ := rec["trustmed_uuid"].(string)
-		id, _ := rec["id"].(string)
 		shipOpID, _ := rec["shipping_operation_id"].(string)
-		if uuid != "" {
+
+		// Handle both string and numeric IDs from Directus JSON
+		var id string
+		switch v := rec["id"].(type) {
+		case string:
+			id = v
+		case float64:
+			id = fmt.Sprintf("%.0f", v)
+		}
+
+		if uuid != "" && !seenIDs[id] {
 			allToCheck = append(allToCheck, DispatchResult{
 				ShippingOperationID: shipOpID,
 				DispatchRecordID:    id,
 				TrustMedUUID:        uuid,
 			})
+			seenIDs[id] = true
 		}
 	}
 
@@ -244,18 +258,16 @@ func PollDispatchConfirmation(ctx context.Context, cms *DirectusClient, cfg *con
 		}
 
 		// Update dispatch record with confirmation status
-		patchPayload := map[string]interface{}{
-			"data": map[string]interface{}{
-				"trustmed_status":         status.Status,
-				"trustmed_status_msg":     status.StatusMsg,
-				"trustmed_status_updated": status.LastChecked.Format("2006-01-02T15:04:05Z07:00"),
-			},
+		updates := map[string]interface{}{
+			"trustmed_status":         status.Status,
+			"trustmed_status_msg":     status.StatusMsg,
+			"trustmed_status_updated": status.LastChecked.Format("2006-01-02T15:04:05Z07:00"),
 		}
 		if status.IsDelivered {
-			patchPayload["data"].(map[string]interface{})["date_confirmed"] = status.LastChecked.Format("2006-01-02T15:04:05Z07:00")
+			updates["date_confirmed"] = status.LastChecked.Format("2006-01-02T15:04:05Z07:00")
 		}
 
-		err = cms.PatchItem(ctx, "EPCIS_outbound", result.DispatchRecordID, patchPayload)
+		err = cms.PatchItem(ctx, "EPCIS_outbound", result.DispatchRecordID, updates)
 		if err != nil {
 			logger.Error("Failed to update confirmation status",
 				zap.String("dispatch_record_id", result.DispatchRecordID),
@@ -333,7 +345,13 @@ func NotifyOnErrors(ctx context.Context, cms *DirectusClient, cfg *configs.Confi
 		logger.Warn("Total failed dispatches needing notification", zap.Int("count", len(allFailedRecords)))
 
 		for _, rec := range allFailedRecords {
-			id, _ := rec["id"].(string)
+			var id string
+			switch v := rec["id"].(type) {
+			case string:
+				id = v
+			case float64:
+				id = fmt.Sprintf("%.0f", v)
+			}
 			shipOpID, _ := rec["shipping_operation_id"].(string)
 			attempts, _ := rec["dispatch_attempt_count"].(float64)
 			lastError, _ := rec["last_error_message"].(string)
